@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Activity, AlertTriangle, CheckCircle, Clock, IndianRupee, Plus, Filter, Layout, Menu, X } from 'lucide-react';
+import { Activity, AlertTriangle, CheckCircle, Clock, IndianRupee, Plus, Filter, Layout } from 'lucide-react';
 import { useLiveData } from '../context/LiveDataContext';
 import { useToast } from '../context/ToastContext';
 import FacilityMap from '../components/Map/FacilityMap';
