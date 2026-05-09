@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "env": {
+    "VITE_API_URL": "REPLACE_WITH_YOUR_BACKEND_URL"
+  }
+}

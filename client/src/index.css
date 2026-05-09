@@ -21,8 +21,12 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased selection:bg-accent/30 selection:text-white;
+    @apply bg-background text-foreground antialiased;
     font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  ::selection {
+    @apply bg-atmosAccent/30 text-white;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -40,7 +44,7 @@
 }
 
 .text-accent-gradient {
-  @apply bg-clip-text text-transparent bg-gradient-to-br from-accent via-accent-soft to-accent/50;
+  @apply bg-clip-text text-transparent bg-gradient-to-br from-atmosAccent via-atmosAccentSoft to-atmosAccent/50;
 }
 
 /* Custom Scrollbar */

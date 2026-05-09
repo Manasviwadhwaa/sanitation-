@@ -1,49 +1,38 @@
-# SAFAI / SAAF – Smart Automated Attendance & Facilities Monitor
+# SAFAI - Smart Automated Facilities & Attendance Monitor
 
-A premium, full-stack monorepo application for real-time facility monitoring, featuring a cinematic 3D WebGL dashboard and an intelligent AI-driven backend.
+SAFAI is a high-fidelity, mission-critical municipal operational platform designed to manage and monitor public sanitation infrastructure in real-time.
 
-## 🚀 Quick Start
+## 🚀 Deployment Guide
 
-### 1. Prerequisites
-- Node.js (v18+)
-- NVIDIA API Key (for AI Insights)
-
-### 2. Installation
-Install all dependencies for both client and server:
+### 1. Push to GitHub
+To host this project on Vercel/GitHub, run the following commands:
 ```bash
-npm run install:all
+git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
+git branch -M main
+git push -u origin main
 ```
 
-### 3. Configuration
-Set up your environment variables in `/server/.env`:
-```env
-PORT=4000
-NVIDIA_API_KEY=your_key_here
-```
+### 2. Host Frontend on Vercel
+1. Go to [Vercel](https://vercel.com).
+2. Import your GitHub repository.
+3. Set the **Root Directory** to `client`.
+4. Add the **Environment Variable**: `VITE_API_URL` (pointing to your deployed backend).
+5. Deploy.
 
-### 4. Development
-Run both the 3D Frontend and the Advanced Backend concurrently:
-```bash
-npm run dev
-```
-- **Frontend**: [http://localhost:5173](http://localhost:5173) (Vite Dev Server)
-- **Backend API**: [http://localhost:4000/api](http://localhost:4000/api)
-- **Health Check**: [http://localhost:4000/](http://localhost:4000/)
+### 3. Host Backend on Railway/Render
+1. Import your repository.
+2. Set the **Root Directory** to `server`.
+3. Set the **Build Command**: `npm install && npm run build` (or similar).
+4. Set the **Start Command**: `npm start`.
+5. Ensure persistent storage is enabled for the `.db` file if using SQLite.
 
-### 5. Production
-Build and start the unified server:
-```bash
-npm run build
-npm start
-```
-The server will host the API at `/api` and serve the static frontend at `/`.
+## ✨ Premium Features
+- **Neural Command Surface**: Real-time 3D background with interactive data layers.
+- **Predictive Analytics**: AI-driven surge forecasting and operational heatmaps.
+- **Responsive Mastery**: Perfect performance across mobile, tablet, and desktop.
+- **Mission-Critical Typography**: Utilizing Outfit and Inter for a high-end editorial feel.
 
-## 🏗️ Project Structure
-- `/client`: React + Three.js + Tailwind (The "Pulse" Dashboard)
-- `/server`: Node.js + Express + SQLite + node-cron (The "Command Center")
-- `/server/data`: Persistent SQLite storage
-
-## 🛰️ Tech Stack
-- **Frontend**: React 19, Three.js, Framer Motion, Tailwind CSS
-- **Backend**: Express, Socket.io, better-sqlite3, node-cron
-- **AI**: NVIDIA NIM (Llama 3.1 70b)
+## 🛠️ Tech Stack
+- **Frontend**: React, Vite, Framer Motion, React Three Fiber, Tailwind CSS.
+- **Backend**: Node.js, Express, Socket.io, SQLite.
+- **Intelligence**: Custom simulation engine and tactical data stream.
