@@ -12,7 +12,6 @@ const AdminDashboard: React.FC = () => {
   const [overview, setOverview] = useState<any>(null);
   const [alerts, setAlerts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const fetchDashboardData = async () => {
     try {
@@ -81,8 +80,8 @@ const AdminDashboard: React.FC = () => {
               <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-green-500 shadow-[0_0_8px_green]' : 'bg-red-500'} `} />
               <span className="text-[8px] md:text-[10px] text-atmosTextMuted font-bold uppercase tracking-widest">{isLive ? 'LIVE LINK' : 'OFFLINE'}</span>
            </div>
-           <button className="p-2 md:p-3 hover:text-atmosAccent transition-colors"><Filter size={16} md:size={18} /></button>
-           <button className="p-2 md:p-3 bg-atmosAccent text-black rounded-full shadow-lg shadow-atmosAccent/20"><Plus size={16} md:size={18} /></button>
+           <button className="p-2 md:p-3 hover:text-atmosAccent transition-colors"><Filter className="w-4 h-4 md:w-4.5 md:h-4.5" /></button>
+           <button className="p-2 md:p-3 bg-atmosAccent text-black rounded-full shadow-lg shadow-atmosAccent/20"><Plus className="w-4 h-4 md:w-4.5 md:h-4.5" /></button>
         </div>
       </header>
 
@@ -97,7 +96,7 @@ const AdminDashboard: React.FC = () => {
             className="p-6 md:p-8 bg-atmosBgAlt/50 backdrop-blur-xl border border-white/5 rounded-[2rem] md:rounded-[2.5rem] relative overflow-hidden"
           >
             <div className={`mb-4 md:mb-6 ${kpi.color}`}>
-              <kpi.icon size={24} md:size={28} />
+              <kpi.icon className="w-6 h-6 md:w-7 md:h-7" />
             </div>
             {isLoading ? <Skeleton className="h-8 md:h-10 w-20 md:w-24 mb-2" /> : (
               <div className="text-2xl md:text-3xl font-bold text-atmosText mb-1 font-outfit tracking-tight">{kpi.value}</div>
@@ -140,7 +139,7 @@ const AdminDashboard: React.FC = () => {
             {!isLoading && alerts.length === 0 && (
               <div className="text-center py-16">
                 <div className="w-12 h-12 md:w-16 md:h-16 bg-atmosSuccess/5 rounded-full flex items-center justify-center mx-auto mb-4 md:mb-6">
-                  <CheckCircle className="text-atmosSuccess opacity-20" size={24} md:size={32} />
+                  <CheckCircle className="text-atmosSuccess opacity-20 w-6 h-6 md:w-8 md:h-8" />
                 </div>
                 <p className="text-[8px] md:text-[10px] text-atmosTextSubtle uppercase tracking-[0.4em]">All units operational</p>
               </div>
@@ -153,7 +152,7 @@ const AdminDashboard: React.FC = () => {
            <div className="p-3 md:p-4 bg-atmosBgAlt/30 border border-white/5 rounded-[2rem] md:rounded-[3rem] overflow-hidden">
               <div className="px-4 md:px-6 py-3 md:py-4 flex items-center justify-between border-b border-white/5 mb-4">
                  <div className="flex items-center gap-3">
-                    <Layout size={14} md:size={16} className="text-atmosAccent" />
+                    <Layout className="w-3.5 h-3.5 md:w-4 md:h-4 text-atmosAccent" />
                     <span className="text-[9px] md:text-[10px] text-atmosText font-bold uppercase tracking-widest">Tactical Network View</span>
                  </div>
                  <div className="hidden sm:flex gap-4">

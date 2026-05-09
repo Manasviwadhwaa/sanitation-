@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Shield, Zap, TrendingUp, ChevronDown, MapPin, AlertCircle, Clock } from 'lucide-react';
+import { Shield, Zap, TrendingUp, ChevronDown, AlertCircle, Clock } from 'lucide-react';
 import { useLiveData } from '../../context/LiveDataContext';
 
 const InteractiveHero: React.FC = () => {

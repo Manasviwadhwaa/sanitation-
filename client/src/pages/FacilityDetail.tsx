@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Star, MapPin, AlertTriangle, ShieldCheck } from 'lucide-react';
-import { useLiveData, LiveDataProvider } from '../context/LiveDataContext';
+import { useLiveData } from '../context/LiveDataContext';
 import SensorGauge from '../components/UI/SensorGauge';
 
 const DetailContent: React.FC = () => {
@@ -10,7 +10,6 @@ const DetailContent: React.FC = () => {
   const { facilities, isLive } = useLiveData();
   const [rating, setRating] = useState(5);
   const [feedback, setFeedback] = useState('');
-  const [history, setHistory] = useState<any[]>([]);
 
   const facility = useMemo(() => 
     facilities.find(f => f.id === Number(id)), 
@@ -20,8 +19,7 @@ const DetailContent: React.FC = () => {
     const hostname = window.location.hostname;
     const API_URL = import.meta.env.VITE_API_URL || `http://${hostname}:4000`;
     fetch(`${API_URL}/api/facilities/${id}/history?hours=24`)
-      .then(res => res.json())
-      .then(data => setHistory(data));
+      .then(res => res.json());
   }, [id]);
 
   if (!facility) return (

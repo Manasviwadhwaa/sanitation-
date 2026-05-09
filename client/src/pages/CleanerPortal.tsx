@@ -55,7 +55,7 @@ const CleanerPortal: React.FC = () => {
       <div className="p-4 md:p-6 bg-atmosBgAlt/50 backdrop-blur-2xl border-b border-white/5 sticky top-0 z-50 flex items-center justify-between">
         <div className="flex items-center gap-3 md:gap-4">
           <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-atmosAccent/10 border border-atmosAccent/20 flex items-center justify-center">
-            <Shield className="text-atmosAccent" size={20} md:size={24} />
+            <Shield className="text-atmosAccent w-5 h-5 md:w-6 md:h-6" />
           </div>
           <div>
             <h2 className="text-xs md:text-sm font-bold tracking-tight uppercase truncate max-w-[150px]">{user?.name}</h2>
@@ -63,7 +63,7 @@ const CleanerPortal: React.FC = () => {
           </div>
         </div>
         <button onClick={() => logout()} className="p-2 md:p-3 text-red-500/50 hover:text-red-500 transition-colors">
-          <LogOut size={18} md:size={20} />
+          <LogOut className="w-4.5 h-4.5 md:w-5 md:h-5" />
         </button>
       </div>
 

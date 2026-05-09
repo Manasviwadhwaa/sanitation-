@@ -2,10 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { motion, useMotionValue, useSpring } from 'framer-motion';
 
 const InteractiveCursor: React.FC = () => {
-  const [isHovered, setIsHovered] = useState(false);
   const [isPointer, setIsPointer] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
-  const [isTouchDevice, setIsTouchDevice] = useState(false);
   const [cursorLabel, setCursorLabel] = useState('Neural Select');
 
   const cursorX = useMotionValue(-100);
@@ -18,7 +16,6 @@ const InteractiveCursor: React.FC = () => {
   useEffect(() => {
     // Detect touch device
     const touchCheck = window.matchMedia('(pointer: coarse)').matches;
-    setIsTouchDevice(touchCheck);
     if (touchCheck) return; // Exit if touch
     const handleMouseMove = (e: MouseEvent) => {
       cursorX.set(e.clientX);

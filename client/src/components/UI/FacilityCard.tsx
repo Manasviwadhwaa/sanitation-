@@ -92,7 +92,7 @@ const FacilityCard: React.FC<{ facility: FacilityData }> = ({ facility }) => {
            </div>
            {facility.type === 'accessible' && (
              <div className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center rounded-xl bg-white/5 text-atmosAccentSoft border border-white/5">
-                <Accessibility size={12} md:size={14} />
+                <Accessibility className="w-3 h-3 md:w-3.5 md:h-3.5" />
              </div>
            )}
         </div>
@@ -106,7 +106,7 @@ const FacilityCard: React.FC<{ facility: FacilityData }> = ({ facility }) => {
             className="mt-4 md:mt-6 p-3 md:p-4 bg-atmosAccent/5 border border-atmosAccent/10 rounded-[1.2rem] md:rounded-[1.5rem] relative z-10"
           >
             <div className="flex items-center gap-2 mb-1.5 md:mb-2">
-              <Zap className="text-atmosAccentSoft" size={10} md:size={12} />
+              <Zap className="text-atmosAccentSoft w-2.5 h-2.5 md:w-3 md:h-3" />
               <span className="text-[8px] md:text-[9px] font-bold text-atmosAccentSoft uppercase tracking-widest">NVIDIA NIM Insight</span>
             </div>
             <p className="text-[10px] md:text-[11px] text-atmosText italic leading-relaxed line-clamp-2 md:line-clamp-none">

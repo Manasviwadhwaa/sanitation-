@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { IndianRupee, FileText, Download, Filter, Calendar, Search } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import Skeleton from '../components/UI/Skeleton';

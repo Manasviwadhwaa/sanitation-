@@ -6,7 +6,6 @@ import { useAuth } from '../../context/AuthContext';
 
 const Navbar: React.FC = () => {
   const [time, setTime] = useState(new Date());
-  const [lang, setLang] = useState<'EN' | 'HI'>('EN');
   const [isHighContrast, setIsHighContrast] = useState(false);
   const { user, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
