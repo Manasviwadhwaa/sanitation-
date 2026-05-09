@@ -1,0 +1,71 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #030712;
+  --foreground: #f8fafc;
+  --accent: #3b82f6;
+  --accent-soft: #60a5fa;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --error: #ef4444;
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased selection:bg-accent/30 selection:text-white;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Outfit', sans-serif;
+  }
+}
+
+/* Premium Typography Utilities */
+.text-premium-label {
+  @apply text-[10px] font-bold uppercase tracking-[0.3em] text-white/40;
+}
+
+.text-gradient {
+  @apply bg-clip-text text-transparent bg-gradient-to-br from-white via-white to-white/40;
+}
+
+.text-accent-gradient {
+  @apply bg-clip-text text-transparent bg-gradient-to-br from-accent via-accent-soft to-accent/50;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Leaflet Dark Mode */
+.map-tiles-dark {
+  filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+}
+
+.saaf-popup .leaflet-popup-content-wrapper {
+  @apply bg-atmosBgAlt/90 backdrop-blur-xl border border-white/10 text-white rounded-[20px] shadow-2xl;
+}
+.saaf-popup .leaflet-popup-tip {
+  @apply bg-atmosBgAlt/90;
+}
