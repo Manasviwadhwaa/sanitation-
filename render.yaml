@@ -13,5 +13,7 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: MONGODB_URI
-        sync: false # Set this in the Render dashboard if using Atlas
+        sync: false
+      - key: NVIDIA_API_KEY
+        sync: false # Required for AI insights
     healthCheckPath: /api/health
