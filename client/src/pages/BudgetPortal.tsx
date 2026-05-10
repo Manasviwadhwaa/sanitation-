@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { IndianRupee, FileText, Download, Filter, Calendar, Search, ArrowLeft, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../context/ToastContext';
+import { API_URL } from '../lib/api';
 
 const BudgetPortal: React.FC = () => {
   const navigate = useNavigate();

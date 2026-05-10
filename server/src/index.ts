@@ -7,6 +7,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import morgan from 'morgan';
 import fs from 'fs';
+import mongoose from 'mongoose';
 
 import { db, initDB } from './db/setup.js';
 import { connectDB } from './db/mongo.js';

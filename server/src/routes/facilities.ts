@@ -5,7 +5,7 @@ import { getFacilityHealthSummary } from '../services/analyticsService.js';
 const router = express.Router();
 
 // 1. Live Recommendation Engine (based on hygiene & wait times)
-router.get('/recommendation', (req, res) => {
+router.get('/recommendation', async (req, res) => {
   try {
     const facilities = db.prepare('SELECT * FROM facilities').all() as any[];
     

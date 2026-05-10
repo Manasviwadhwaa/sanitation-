@@ -8,7 +8,10 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useLiveData } from '../context/LiveDataContext';
 import { useSearch } from '../context/SearchContext';
+import { useToast } from '../context/ToastContext';
 import { API_URL } from '../lib/api';
+import FacilityMap from '../components/Map/FacilityMap';
+import FacilityCard from '../components/UI/FacilityCard';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -89,6 +92,7 @@ const Home: React.FC = () => {
   const recommendationText = useMemo(() => {
     if (!recommendation?.best) return "Looking for the best nearby facility...";
     const best = recommendation.best;
+    if (best.ai_insight) return best.ai_insight;
     const waitTime = best.wait_time !== undefined ? `${best.wait_time}m wait` : 'minimal wait';
     return `Best nearby option: ${best.name} — ${waitTime}, recently verified.`;
   }, [recommendation]);

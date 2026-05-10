@@ -7,6 +7,7 @@ import CleanerPortal from './pages/CleanerPortal';
 import BudgetPortal from './pages/BudgetPortal';
 import AnalyticsPage from './pages/AnalyticsPage';
 import QueueInsights from './pages/QueueInsights';
+import InspectorPortal from './pages/InspectorPortal';
 import { AuthProvider } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
 import { LiveDataProvider } from './context/LiveDataContext';
@@ -35,6 +36,11 @@ function App() {
                   <Route path="cleaner" element={
                     <ProtectedRoute allowedRoles={['cleaner', 'admin']}>
                       <CleanerPortal />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="inspector" element={
+                    <ProtectedRoute allowedRoles={['inspector', 'admin']}>
+                      <InspectorPortal />
                     </ProtectedRoute>
                   } />
                   <Route path="budget" element={<BudgetPortal />} />
