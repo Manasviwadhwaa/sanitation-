@@ -55,15 +55,28 @@ io.on('connection', (socket) => {
 });
 
 // Initialize DB and Jobs
-initDB();
-connectDB();
-initSensorJob();
+console.log('🏗️ [System] Initializing Services...');
+initDB().then(() => {
+  console.log('✅ [SQLite] Database Ready');
+  connectDB().then(() => {
+    console.log('✅ [MongoDB] Check Completed');
+    initSensorJob();
+    console.log('🚀 [Jobs] Sensor Simulation Started');
+  });
+}).catch(err => {
+  console.error('❌ [System] Initialization Failed:', err);
+});
 
 // Health Check
 app.get('/api/health', (_req, res) => {
+  const dbStatus = db.prepare('SELECT 1').get() ? 'connected' : 'error';
   res.json({ 
     status: 'online', 
     service: 'SAAF-Gateway',
+    database: dbStatus,
+    mongo: mongoose.connection.readyState === 1 ? 'connected' : 'fallback',
+    nvidia: !!process.env.NVIDIA_API_KEY ? 'configured' : 'missing',
+    environment: process.env.NODE_ENV || 'development',
     timestamp: new Date().toISOString()
   });
 });

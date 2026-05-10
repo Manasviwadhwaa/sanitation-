@@ -18,28 +18,12 @@ export const db = new Database(dbPath);
 db.pragma('journal_mode = WAL');
 
 export const initDB = async () => {
-  // Drop tables to apply schema changes (Destructive re-seed)
-  db.exec('PRAGMA foreign_keys = OFF');
-  db.exec(`
-    DROP TABLE IF EXISTS facilities;
-    DROP TABLE IF EXISTS users;
-    DROP TABLE IF EXISTS cleaners;
-    DROP TABLE IF EXISTS stall_status;
-    DROP TABLE IF EXISTS sensor_readings;
-    DROP TABLE IF EXISTS cleanliness_status;
-    DROP TABLE IF EXISTS maintenance_tasks;
-    DROP TABLE IF EXISTS crowd_queue;
-    DROP TABLE IF EXISTS budget_log;
-    DROP TABLE IF EXISTS predicted_rush;
-    DROP TABLE IF EXISTS user_feedback;
-    DROP TABLE IF EXISTS inspection_reports;
-    DROP TABLE IF EXISTS photos;
-  `);
+  // Ensure tables exist (Non-destructive)
   db.exec('PRAGMA foreign_keys = ON');
 
   // Create Tables
   db.exec(`
-    CREATE TABLE facilities (
+    CREATE TABLE IF NOT EXISTS facilities (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       location TEXT NOT NULL,
@@ -62,7 +46,7 @@ export const initDB = async () => {
       is_active INTEGER DEFAULT 1
     );
 
-    CREATE TABLE users (
+    CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
@@ -70,7 +54,7 @@ export const initDB = async () => {
       name TEXT
     );
 
-    CREATE TABLE cleaners (
+    CREATE TABLE IF NOT EXISTS cleaners (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       cleaner_id TEXT UNIQUE NOT NULL,
       pin_hash TEXT NOT NULL,
@@ -79,7 +63,7 @@ export const initDB = async () => {
       assigned_zone TEXT
     );
 
-    CREATE TABLE stall_status (
+    CREATE TABLE IF NOT EXISTS stall_status (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       facility_id INTEGER,
       stall_number INTEGER,
@@ -88,7 +72,7 @@ export const initDB = async () => {
       FOREIGN KEY (facility_id) REFERENCES facilities(id)
     );
 
-    CREATE TABLE sensor_readings (
+    CREATE TABLE IF NOT EXISTS sensor_readings (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       facility_id INTEGER,
       ammonia_level REAL,
@@ -101,7 +85,7 @@ export const initDB = async () => {
       FOREIGN KEY (facility_id) REFERENCES facilities(id)
     );
 
-    CREATE TABLE cleanliness_status (
+    CREATE TABLE IF NOT EXISTS cleanliness_status (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       facility_id INTEGER,
       status TEXT CHECK(status IN ('GREEN', 'AMBER', 'RED')),
@@ -110,7 +94,7 @@ export const initDB = async () => {
       FOREIGN KEY (facility_id) REFERENCES facilities(id)
     );
 
-    CREATE TABLE maintenance_tasks (
+    CREATE TABLE IF NOT EXISTS maintenance_tasks (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       facility_id INTEGER,
       status TEXT CHECK(status IN ('PENDING', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED')),
@@ -127,7 +111,7 @@ export const initDB = async () => {
       FOREIGN KEY (facility_id) REFERENCES facilities(id)
     );
 
-    CREATE TABLE budget_log (
+    CREATE TABLE IF NOT EXISTS budget_log (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       task_id INTEGER,
       facility_id INTEGER,
@@ -139,7 +123,7 @@ export const initDB = async () => {
       FOREIGN KEY (facility_id) REFERENCES facilities(id)
     );
 
-    CREATE TABLE crowd_queue (
+    CREATE TABLE IF NOT EXISTS crowd_queue (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       facility_id INTEGER,
       current_users INTEGER,
@@ -149,7 +133,7 @@ export const initDB = async () => {
       FOREIGN KEY (facility_id) REFERENCES facilities(id)
     );
 
-    CREATE TABLE user_feedback (
+    CREATE TABLE IF NOT EXISTS user_feedback (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       facility_id INTEGER,
       rating INTEGER,
@@ -163,7 +147,7 @@ export const initDB = async () => {
       FOREIGN KEY (facility_id) REFERENCES facilities(id)
     );
 
-    CREATE TABLE inspection_reports (
+    CREATE TABLE IF NOT EXISTS inspection_reports (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       facility_id INTEGER,
       inspector_id INTEGER,
@@ -176,7 +160,7 @@ export const initDB = async () => {
       FOREIGN KEY (inspector_id) REFERENCES users(id)
     );
 
-    CREATE TABLE photos (
+    CREATE TABLE IF NOT EXISTS photos (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       facility_id INTEGER,
       task_id INTEGER,
@@ -191,7 +175,7 @@ export const initDB = async () => {
       FOREIGN KEY (feedback_id) REFERENCES user_feedback(id)
     );
 
-    CREATE TABLE predicted_rush (
+    CREATE TABLE IF NOT EXISTS predicted_rush (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       facility_id INTEGER,
       predicted_at TEXT,
@@ -207,19 +191,15 @@ export const initDB = async () => {
 };
 
 const seedDB = async () => {
-  // Always clear and re-seed for this update to ensure schema consistency
-  console.log('Re-seeding database with Dehradun real-world data...');
+  // Check if seeding is needed
+  const existingFacilities = db.prepare('SELECT COUNT(*) as count FROM facilities').get() as { count: number };
+  if (existingFacilities.count > 0) {
+    console.log('📦 [SQLite] Data exists. Skipping seeding sequence.');
+    return;
+  }
+
+  console.log('🌱 [SQLite] Seeding initial data for Dehradun sanitation network...');
   
-  db.exec('PRAGMA foreign_keys = OFF');
-  db.exec('DELETE FROM facilities');
-  db.exec('DELETE FROM stall_status');
-  db.exec('DELETE FROM sensor_readings');
-  db.exec('DELETE FROM cleanliness_status');
-  db.exec('DELETE FROM maintenance_tasks');
-  db.exec('DELETE FROM crowd_queue');
-  db.exec('DELETE FROM budget_log');
-  db.exec('DELETE FROM predicted_rush');
-  db.exec('DELETE FROM user_feedback');
   db.exec('PRAGMA foreign_keys = ON');
 
   // Seed Admin and Inspector
