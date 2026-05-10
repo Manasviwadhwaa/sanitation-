@@ -33,6 +33,7 @@ export interface FacilityData {
   aiRecommendation?: string;
   rushPrediction?: string;
   ward_number?: string;
+  zone?: string;
   owning_agency?: string;
   contractor_name?: string;
   contract_type?: string;
