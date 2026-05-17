@@ -25,6 +25,7 @@ interface AlertEvent {
   completed_at: string | null;
   photo?: string;
   coords?: any;
+  status: string;
 }
 
 interface BudgetSummary {

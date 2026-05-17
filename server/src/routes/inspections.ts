@@ -1,11 +1,12 @@
 import express from 'express';
 import { db } from '../db/setup.js';
+import { supabase, isSupabaseConfigured } from '../db/supabase.js';
 import { authenticate } from '../middleware/auth.js';
 
 const router = express.Router();
 
 // POST /api/inspections/submit
-router.post('/submit', (req, res) => {
+router.post('/submit', async (req, res) => {
   try {
     const { facility_id, inspector_id, score, checklist, notes } = req.body;
 
@@ -21,8 +22,21 @@ router.post('/submit', (req, res) => {
       new Date().toISOString()
     );
 
-    // Update facility compliance score
+    // Update facility compliance score (SQLite)
     db.prepare('UPDATE facilities SET compliance_score = ? WHERE id = ?').run(score, facility_id);
+
+    if (isSupabaseConfigured()) {
+      await supabase.from('inspection_reports').insert({
+        facility_id,
+        inspector_id: inspector_id || 1,
+        score,
+        checklist_json: checklist,
+        notes: notes || '',
+        status: 'COMPLETED'
+      });
+
+      await supabase.from('facilities').update({ compliance_score: score }).eq('id', facility_id);
+    }
 
     res.status(201).json({
       id: info.lastInsertRowid,

@@ -3,7 +3,9 @@ import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { db } from '../db/setup.js';
+import { supabase, isSupabaseConfigured } from '../db/supabase.js';
 import { authenticate } from '../middleware/auth.js';
+import fs from 'fs/promises';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -25,7 +27,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // POST /api/photos/upload
-router.post('/upload', upload.single('photo'), (req, res) => {
+router.post('/upload', upload.single('photo'), async (req, res) => {
   try {
     const { facility_id, task_id, feedback_id, lat, lng, note } = req.body;
     const file = req.file;
@@ -34,8 +36,35 @@ router.post('/upload', upload.single('photo'), (req, res) => {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    const url = `/uploads/${file.filename}`;
+    let finalUrl = `/uploads/${file.filename}`;
 
+    // 1. Primary: Supabase Storage
+    if (isSupabaseConfigured()) {
+      try {
+        const fileBuffer = await fs.readFile(file.path);
+        const bucketName = feedback_id ? 'feedback-attachments' : (task_id ? 'maintenance-proof' : 'facility-photos');
+        const fileName = `${Date.now()}-${file.filename}`;
+
+        const { data, error: storageErr } = await supabase.storage
+          .from(bucketName)
+          .upload(fileName, fileBuffer, {
+            contentType: file.mimetype,
+            upsert: true
+          });
+
+        if (storageErr) throw storageErr;
+
+        if (data) {
+          const { data: { publicUrl } } = supabase.storage.from(bucketName).getPublicUrl(data.path);
+          finalUrl = publicUrl;
+          console.log(`✅ [Supabase] Photo uploaded to cloud: ${finalUrl}`);
+        }
+      } catch (err) {
+        console.error('❌ [Supabase] Storage upload failed, keeping local reference:', err);
+      }
+    }
+
+    // 2. SQL Log
     const info = db.prepare(`
       INSERT INTO photos (facility_id, task_id, feedback_id, url, lat, lng, note, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -43,17 +72,30 @@ router.post('/upload', upload.single('photo'), (req, res) => {
       facility_id || null,
       task_id || null,
       feedback_id || null,
-      url,
+      finalUrl,
       lat || null,
       lng || null,
       note || '',
       new Date().toISOString()
     );
 
+    // 3. Supabase DB Sync
+    if (isSupabaseConfigured()) {
+      await supabase.from('photos').insert({
+        facility_id: facility_id || null,
+        task_id: task_id || null,
+        feedback_id: feedback_id || null,
+        url: finalUrl,
+        lat: lat || null,
+        lng: lng || null,
+        note: note || ''
+      });
+    }
+
     res.status(201).json({
       id: info.lastInsertRowid,
-      url,
-      message: 'Photo uploaded and geotagged successfully'
+      url: finalUrl,
+      message: 'Photo uploaded successfully'
     });
   } catch (err: any) {
     console.error('Photo Upload Error:', err);

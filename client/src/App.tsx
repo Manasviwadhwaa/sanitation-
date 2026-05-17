@@ -1,62 +1,89 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
-import MainLayout from './components/Layout/MainLayout';
-import Home from './pages/Home';
-import LoginPage from './pages/LoginPage';
-import AdminDashboard from './pages/AdminDashboard';
-import CleanerPortal from './pages/CleanerPortal';
-import BudgetPortal from './pages/BudgetPortal';
-import AnalyticsPage from './pages/AnalyticsPage';
-import QueueInsights from './pages/QueueInsights';
-import InspectorPortal from './pages/InspectorPortal';
-import { AuthProvider } from './context/AuthContext';
-import { SocketProvider } from './context/SocketContext';
-import { LiveDataProvider } from './context/LiveDataContext';
-import { ToastProvider } from './context/ToastContext';
-import { SearchProvider } from './context/SearchContext';
-import ProtectedRoute from './components/Auth/ProtectedRoute';
+import React from 'react';
+import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 
-function App() {
-  return (
-    <ToastProvider>
-      <SocketProvider>
-        <AuthProvider>
-          <LiveDataProvider>
-            <SearchProvider>
-              <Routes>
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/" element={<MainLayout />}>
-                  <Route index element={<Home />} />
-                  
-                  {/* Operations & Analytics */}
-                  <Route path="admin" element={
-                    <ProtectedRoute allowedRoles={['admin']}>
-                      <AdminDashboard />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="cleaner" element={
-                    <ProtectedRoute allowedRoles={['cleaner', 'admin']}>
-                      <CleanerPortal />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="inspector" element={
-                    <ProtectedRoute allowedRoles={['inspector', 'admin']}>
-                      <InspectorPortal />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="budget" element={<BudgetPortal />} />
-                  <Route path="analytics" element={<AnalyticsPage />} />
-                  <Route path="features/queue" element={<QueueInsights />} />
-                  
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Route>
-              </Routes>
-            </SearchProvider>
-          </LiveDataProvider>
-        </AuthProvider>
-      </SocketProvider>
-    </ToastProvider>
+// Layouts
+import PublicLayout from './components/Layout/PublicLayout';
+import WorkerLayout from './components/Layout/WorkerLayout';
+import AuthorityLayout from './components/Layout/AuthorityLayout';
+
+// Public Pages
+import PublicHome from './pages/public/PublicHome';
+import TrackRequest from './pages/public/TrackRequest';
+import ReportIssue from './pages/public/ReportIssue';
+import PublicMap from './pages/public/PublicMap';
+import QRScanner from './pages/public/QRScanner';
+import ServicesDirectory from './pages/public/ServicesDirectory';
+import ServiceHubDetail from './pages/public/ServiceHubDetail';
+
+// Worker Pages
+import WorkerHome from './pages/worker/WorkerHome';
+
+// Authority Pages
+import AuthorityDashboard from './pages/authority/AuthorityDashboard';
+import CaseManagement from './pages/authority/CaseManagement';
+
+// Common
+import AnalyticsPage from './pages/AnalyticsPage';
+import LoginPage from './pages/LoginPage';
+import LandingPage from './pages/LandingPage';
+import { useAuth } from './context/AuthContext';
+
+const App: React.FC = () => {
+  const location = useLocation();
+  const { user, isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) return (
+    <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center">
+       <div className="w-10 h-10 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+    </div>
   );
-}
+
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<LoginPage />} />
+
+        {/* 1. PUBLIC INTERFACE */}
+        <Route path="/public" element={<PublicLayout />}>
+          <Route index element={<PublicHome />} />
+          <Route path="track" element={<TrackRequest />} />
+          <Route path="report" element={<ReportIssue />} />
+          <Route path="map" element={<PublicMap />} />
+          <Route path="scan" element={<QRScanner />} />
+          <Route path="services" element={<ServicesDirectory />} />
+          <Route path="service-hub" element={<ServiceHubDetail />} />
+        </Route>
+
+        {/* 2. WORKER INTERFACE */}
+        <Route 
+          path="/worker" 
+          element={
+            isAuthenticated && user?.role === 'Worker' ? <WorkerLayout /> : <Navigate to="/login" />
+          }
+        >
+          <Route index element={<WorkerHome />} />
+        </Route>
+
+        {/* 3. AUTHORITY INTERFACE */}
+        <Route 
+          path="/authority" 
+          element={
+            isAuthenticated && ['SuperAdmin', 'Supervisor', 'WardAuthority'].includes(user?.role || '') 
+              ? <AuthorityLayout /> 
+              : <Navigate to="/login" />
+          }
+        >
+          <Route index element={<AuthorityDashboard />} />
+          <Route path="cases" element={<CaseManagement />} />
+          <Route path="analytics" element={<AnalyticsPage />} />
+        </Route>
+
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
+    </AnimatePresence>
+  );
+};
 
 export default App;
-

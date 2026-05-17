@@ -1,127 +1,154 @@
 import express from 'express';
 import { db } from '../db/setup.js';
+import { authenticate, requirePermission, AuthRequest } from '../middleware/auth.js';
+import { logAudit } from '../services/auditService.js';
+import { io } from '../socket.js';
 
 const router = express.Router();
 
-// GET /api/budget (Legacy/Combined)
-router.get('/', (req, res) => {
+// 1. PUBLIC: Get Transparency Summary
+router.get('/public-summary', async (req, res) => {
   try {
-    const { from, to, facilityId } = req.query;
-    
-    let query = `
-      SELECT b.*, f.name as facility_name
-      FROM budget_log b
-      JOIN facilities f ON b.facility_id = f.id
-      WHERE 1=1
-    `;
-    const params: any[] = [];
-
-    if (from) { query += " AND b.created_at >= ?"; params.push(from); }
-    if (to) { query += " AND b.created_at <= ?"; params.push(to); }
-    if (facilityId) { query += " AND f.id = ?"; params.push(facilityId); }
-
-    const logs = db.prepare(query).all(...params);
-
     const summary = db.prepare(`
       SELECT 
-        SUM(amount) as total_spend,
-        COUNT(*) as tasks_completed,
+        SUM(amount) as total_approved_spend,
+        COUNT(*) as record_count,
         AVG(amount) as avg_cost
       FROM budget_log
+      WHERE approval_state = 'APPROVED' AND is_public_visibility = 1
     `).get() as any;
 
     res.json({
-      summary: {
-        total_spend: summary.total_spend || 0,
-        tasks_completed: summary.tasks_completed || 0,
-        avg_response: 20 // Mock for legacy
-      },
-      logs
+      total_spent: summary.total_approved_spend || 0,
+      verified_records: summary.record_count || 0,
+      avg_cost: summary.avg_cost || 0
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// GET /api/budget/summary
-router.get('/summary', (req, res) => {
+// Alias for frontend compatibility
+router.get('/summary', async (req, res) => {
   try {
-    const { ward, facility_id } = req.query;
-    let query = `
+    const summary = db.prepare(`
       SELECT 
-        SUM(amount) as total_spent,
-        COUNT(*) as total_tasks,
-        AVG(amount) as avg_cost_per_task
-      FROM budget_log b
-      JOIN facilities f ON b.facility_id = f.id
-      WHERE 1=1
-    `;
-    const params = [];
-
-    if (ward) {
-      query += ` AND f.ward_number = ?`;
-      params.push(ward);
-    }
-    if (facility_id) {
-      query += ` AND f.id = ?`;
-      params.push(facility_id);
-    }
-
-    const summary = db.prepare(query).get(...params);
+        COALESCE(SUM(amount), 0) as total_spent,
+        COUNT(*) as total_tasks
+      FROM budget_log
+      WHERE approval_state = 'APPROVED'
+    `).get() as any;
     res.json(summary);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
   }
 });
 
-// GET /api/budget/line-items
-router.get('/line-items', (req, res) => {
+// 2. PUBLIC: Get Approved Line Items
+router.get('/public-items', async (req, res) => {
   try {
-    const { ward, facility_id } = req.query;
-    let query = `
-      SELECT 
-        b.*, 
-        f.name as facility_name,
-        f.ward_number
+    const items = db.prepare(`
+      SELECT b.*, f.name as facility_name
       FROM budget_log b
       JOIN facilities f ON b.facility_id = f.id
-      WHERE 1=1
-    `;
-    const params = [];
-
-    if (ward) {
-      query += ` AND f.ward_number = ?`;
-      params.push(ward);
-    }
-    if (facility_id) {
-      query += ` AND f.id = ?`;
-      params.push(facility_id);
-    }
-
-    query += ` ORDER BY b.created_at DESC LIMIT 50`;
-    
-    const items = db.prepare(query).all(...params);
+      WHERE b.approval_state = 'APPROVED' AND b.is_public_visibility = 1
+      ORDER BY b.created_at DESC LIMIT 50
+    `).all();
     res.json(items);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// GET /api/budget/vendor-summary
-router.get('/vendor-summary', (req, res) => {
+// Alias for frontend compatibility
+router.get('/line-items', async (req, res) => {
   try {
-    const vendors = db.prepare(`
-      SELECT 
-        f.contractor_name,
-        SUM(b.amount) as total_spend,
-        COUNT(b.id) as task_count,
-        AVG(f.compliance_score) as avg_sla_score
+    const items = db.prepare(`
+      SELECT b.*, f.name as facility_name
       FROM budget_log b
       JOIN facilities f ON b.facility_id = f.id
-      WHERE f.contractor_name IS NOT NULL
-      GROUP BY f.contractor_name
+      ORDER BY b.created_at DESC LIMIT 50
     `).all();
-    res.json(vendors);
+    res.json(items);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 3. ADMIN: Get Full Ledger (Finance/Admin only)
+router.get('/admin-ledger', authenticate, requirePermission('READ', 'BUDGET'), async (req: AuthRequest, res) => {
+  try {
+    const logs = db.prepare(`
+      SELECT b.*, f.name as facility_name, u.name as approver_name
+      FROM budget_log b
+      JOIN facilities f ON b.facility_id = f.id
+      LEFT JOIN users u ON b.approved_by_id = u.id
+      ORDER BY b.created_at DESC
+    `).all();
+    res.json(logs);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 4. ADMIN: Create Budget Entry
+router.post('/create', authenticate, requirePermission('WRITE', 'BUDGET'), async (req: AuthRequest, res) => {
+  try {
+    const { facility_id, amount, category, description, is_public } = req.body;
+    
+    const info = db.prepare(`
+      INSERT INTO budget_log (facility_id, amount, category, description, is_public_visibility, created_at, approval_state)
+      VALUES (?, ?, ?, ?, ?, ?, 'PENDING')
+    `).run(facility_id, amount, category, description, is_public ? 1 : 0, new Date().toISOString());
+
+    const recordId = info.lastInsertRowid;
+
+    await logAudit({
+      actorId: req.user!.id,
+      actorRole: req.user!.role,
+      eventType: 'DATA_CHANGE',
+      module: 'BUDGET',
+      recordId: Number(recordId),
+      afterPayload: { amount, category, facility_id },
+      ipAddress: req.ip
+    });
+
+    res.json({ id: recordId, status: 'success' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 5. ADMIN: Approve Budget Entry
+router.put('/:id/approve', authenticate, requirePermission('APPROVE', 'BUDGET'), async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    const { is_public } = req.body;
+
+    const before = db.prepare('SELECT * FROM budget_log WHERE id = ?').get(id);
+
+    db.prepare(`
+      UPDATE budget_log 
+      SET approval_state = 'APPROVED', approved_by_id = ?, is_public_visibility = ?
+      WHERE id = ?
+    `).run(req.user!.id, is_public ? 1 : 0, id);
+
+    await logAudit({
+      actorId: req.user!.id,
+      actorRole: req.user!.role,
+      eventType: 'BUDGET_APPROVAL',
+      module: 'BUDGET',
+      recordId: Number(id),
+      beforePayload: before,
+      afterPayload: { approval_state: 'APPROVED', is_public },
+      ipAddress: req.ip
+    });
+
+    if (is_public) {
+      io.emit('budget_update', { message: 'New transparency data released' });
+    }
+
+    res.json({ status: 'success' });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

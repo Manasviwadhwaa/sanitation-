@@ -26,20 +26,32 @@ class ErrorBoundary extends Component<Props, State> {
   public render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-[#030712] flex items-center justify-center p-6 text-center">
-          <div className="max-w-md">
-            <h1 className="text-2xl font-bold text-[#EF4444] mb-4 tracking-tighter">System Offline</h1>
-            <p className="text-[#9CA3AF] mb-6">
-              The 3D engine encountered a critical error. This can be caused by WebGL context loss or a component crash.
+        <div className="min-h-screen bg-[#fcf8fa] flex items-center justify-center p-8 text-center relative overflow-hidden">
+          {/* Background Ambient Glow */}
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-red-500/5 rounded-full blur-[120px]" />
+          
+          <div className="max-w-xl w-full relative z-10 glass-panel rounded-[3rem] p-12 shadow-[0px_40px_100px_rgba(0,0,0,0.05)]">
+            <div className="w-20 h-20 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-8">
+               <span className="material-symbols-outlined text-4xl font-bold">error_outline</span>
+            </div>
+            
+            <h1 className="text-4xl font-bold text-black mb-4 tracking-tighter">System Offline</h1>
+            <p className="text-gray-400 font-medium mb-8 uppercase tracking-widest text-[10px]">
+              Engine Encountered a Critical Exception
             </p>
-            <pre className="bg-white/5 p-4 rounded text-xs text-left overflow-auto max-h-48 mb-6 text-[#6B7280]">
-              {this.state.error?.message}
-            </pre>
+            
+            <div className="bg-gray-50 border border-gray-100 p-6 rounded-3xl text-left overflow-auto max-h-48 mb-10 shadow-inner">
+               <div className="text-[10px] font-bold text-gray-300 uppercase mb-3">Diagnostic Trace</div>
+               <code className="text-xs text-red-600 font-mono break-all leading-relaxed">
+                 {this.state.error?.message}
+               </code>
+            </div>
+            
             <button 
               onClick={() => window.location.reload()}
-              className="px-8 py-3 bg-[#3B82F6] text-white rounded-full font-bold shadow-lg shadow-blue-500/20"
+              className="w-full py-5 bg-black text-white rounded-2xl font-bold uppercase tracking-[0.3em] text-[10px] shadow-2xl hover:scale-[1.02] active:scale-95 transition-all"
             >
-              Restart Engine
+              Restart Sanitrax Engine
             </button>
           </div>
         </div>

@@ -11,7 +11,7 @@ export const getApiURL = () => {
   
   // Priority 3: Localhost dev
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return `http://localhost:4000`;
+    return `http://localhost:4001`;
   }
 
   // Priority 4: Production same-origin

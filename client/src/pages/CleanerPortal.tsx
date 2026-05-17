@@ -1,15 +1,10 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  User, MapPin, ArrowRight, Camera, CheckCircle, 
-  Package, Play, LogOut, Shield, Info
-} from 'lucide-react';
+import { LogOut, Play, Package, Camera, CheckCircle2, RefreshCw, Layout, Activity, Shield, ChevronRight, Zap, Target, ClipboardList } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useLiveData } from '../context/LiveDataContext';
 import { API_URL } from '../lib/api';
-import { RefreshCw } from 'lucide-react';
-import FacilityMap from '../components/Map/FacilityMap';
 
 const CleanerPortal: React.FC = () => {
   const { user, logout } = useAuth();
@@ -22,43 +17,28 @@ const CleanerPortal: React.FC = () => {
   const [verificationPhoto, setVerificationPhoto] = useState<File | null>(null);
 
   const handleStartTask = async (task: any) => {
-    try {
-      setActiveTask(task);
-      setTaskStatus('IN_PROGRESS');
-      
-      const res = await fetch(`${API_URL}/api/maintenance/${task.id}/accept`, {
-        method: 'PUT'
-      });
-      
-      if (res.ok) {
-        showToast('Service window started', 'info');
-      }
-    } catch (err) {
-      console.error('Failed to start task:', err);
-      showToast('Offline mode active', 'info');
-    }
+    setActiveTask(task);
+    setTaskStatus('IN_PROGRESS');
+    showToast('Service window initialized', 'info');
   };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setVerificationPhoto(e.target.files[0]);
       setTaskStatus('VERIFYING');
-      showToast('Photo evidence attached', 'success');
+      showToast('Visual evidence attached', 'success');
     }
   };
 
   const handleComplete = async () => {
     setIsSubmitting(true);
-    showToast('Submitting service report...', 'info');
+    showToast('Syncing service log to cloud...', 'info');
     
     try {
       let photoUrl = '';
       if (verificationPhoto) {
         const formData = new FormData();
         formData.append('photo', verificationPhoto);
-        formData.append('task_id', activeTask.id.toString());
-        formData.append('facility_id', activeTask.facility_id.toString());
-        
         const uploadRes = await uploadPhoto(formData);
         photoUrl = uploadRes.url;
       }
@@ -68,9 +48,8 @@ const CleanerPortal: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           photo: photoUrl,
-          cost_inr: 500,
-          notes: 'Maintenance completed via staff portal',
-          coords: { lat: 30.27, lng: 78.00 } // Simulated GPS
+          cost_inr: 450,
+          notes: 'Standard service protocol complete.'
         })
       });
 
@@ -78,37 +57,44 @@ const CleanerPortal: React.FC = () => {
         setActiveTask(null);
         setTaskStatus('IDLE');
         setVerificationPhoto(null);
-        showToast('Service completed & verified', 'success');
+        showToast('Service verified & closed', 'success');
         fetchInitial();
-      } else {
-        throw new Error('Failed to complete task');
       }
     } catch (err) {
-      console.error('Failed to complete task:', err);
-      showToast('Submission failed. Check connection.', 'error');
+      showToast('Offline sync failed', 'error');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Filter alerts for pending tasks
   const pendingTasks = alerts.filter(a => a.status === 'PENDING');
 
   return (
-    <div className="min-h-screen bg-premium-bg pt-24 px-6 pb-12 overflow-x-hidden">
-      <div className="max-w-md mx-auto">
-        <header className="mb-12 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-premium-accent/10 rounded-2xl flex items-center justify-center border border-premium-accent/20">
-              <User className="text-premium-accent" size={20} />
+    <div className="min-h-screen bg-premium-bg text-white pb-32 pt-28 overflow-x-hidden">
+      {/* Background Depth */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-[10%] left-[-5%] w-[600px] h-[600px] bg-premium-accent/5 rounded-full blur-[150px]" />
+        <div className="absolute bottom-[10%] right-[-5%] w-[500px] h-[500px] bg-emerald-500/5 rounded-full blur-[120px]" />
+      </div>
+
+      <div className="max-w-md mx-auto px-8 relative z-10">
+        
+        {/* Profile Header */}
+        <header className="flex justify-between items-center mb-16">
+          <div className="flex items-center gap-6">
+            <div className="w-16 h-16 rounded-[1.5rem] bg-premium-accent text-white flex items-center justify-center font-black text-3xl shadow-2xl shadow-premium-accent/20 border border-white/10 group-hover:scale-110 transition-transform">
+              {user?.name?.[0] || 'S'}
             </div>
             <div>
-              <h1 className="text-xl font-bold text-premium-text tracking-tight">Staff <span className="text-premium-accent">Portal</span></h1>
-              <p className="text-[10px] text-premium-muted font-bold uppercase tracking-widest">{user?.name || 'Service Associate'}</p>
+              <h1 className="text-3xl font-black tracking-tighter text-white">Service <span className="text-premium-muted/40">Terminal</span></h1>
+              <p className="text-[11px] font-black text-premium-muted uppercase tracking-[0.4em]">{user?.name || 'Staff Associate'}</p>
             </div>
           </div>
-          <button onClick={() => logout()} className="p-3 bg-white/5 rounded-2xl text-premium-muted hover:text-status-issue transition-colors">
-            <LogOut size={18} />
+          <button 
+            onClick={() => logout()} 
+            className="w-14 h-14 bg-white/5 rounded-2xl text-premium-muted hover:text-white transition-all border border-white/5 hover:bg-white/10 flex items-center justify-center"
+          >
+            <LogOut size={24} />
           </button>
         </header>
 
@@ -116,121 +102,140 @@ const CleanerPortal: React.FC = () => {
           {activeTask ? (
             <motion.div 
               key="active"
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="glass-panel p-8"
+              className="glass-panel rounded-[3.5rem] p-12 flex flex-col gap-12 shadow-[0_40px_100px_rgba(0,0,0,0.4)] border-premium-accent/30 relative overflow-hidden"
             >
-              <div className="mb-8 border-b border-white/5 pb-6">
-                <div className="text-premium-accent text-[10px] font-bold uppercase tracking-widest mb-1">Active Task</div>
-                <h2 className="text-2xl font-bold text-premium-text mb-2 tracking-tight">{activeTask.facility_name}</h2>
-                <div className="flex items-center gap-2 text-premium-muted">
-                  <MapPin size={12} className="text-premium-accent" />
-                  <span className="text-xs font-medium">{activeTask.description || 'Routine Service'}</span>
+              <div>
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-2 h-2 rounded-full bg-premium-accent animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
+                  <span className="text-[10px] font-black text-premium-accent uppercase tracking-[0.4em]">Active Assignment</span>
+                </div>
+                <h2 className="text-5xl font-black text-white tracking-tighter mb-6 leading-none">{activeTask.facility_name}</h2>
+                <div className="flex items-start gap-4 text-premium-muted bg-white/5 p-6 rounded-2xl border border-white/5">
+                  <div className="mt-1">
+                    <Activity size={18} className="text-premium-accent" />
+                  </div>
+                  <span className="text-sm font-medium leading-relaxed opacity-80">{activeTask.description}</span>
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <div className={`p-5 rounded-2xl border transition-all flex items-center justify-between ${taskStatus !== 'IDLE' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500' : 'bg-white/5 border-white/5 text-premium-muted'}`}>
-                  <div className="flex items-center gap-3">
-                    <Play size={16} />
-                    <span className="text-[10px] font-bold uppercase tracking-widest">Initialization</span>
+              {/* Progress Stepper */}
+              <div className="flex flex-col gap-5">
+                {[
+                  { label: 'System Init', status: 'done', icon: Play },
+                  { label: 'Resource Check', status: taskStatus === 'RESTOCKING' || taskStatus === 'VERIFYING' ? 'done' : 'pending', icon: Package },
+                  { label: 'Visual Log', status: taskStatus === 'VERIFYING' ? 'done' : 'pending', icon: Camera }
+                ].map((step, i) => (
+                  <div 
+                    key={i} 
+                    className={`flex items-center justify-between p-6 rounded-[2rem] border transition-all duration-700 ${
+                      step.status === 'done' 
+                        ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500 shadow-inner' 
+                        : 'bg-white/5 border-white/5 text-premium-muted'
+                    }`}
+                  >
+                    <div className="flex items-center gap-6">
+                      <div className={`p-3 rounded-xl ${step.status === 'done' ? 'bg-emerald-500/20' : 'bg-white/5'}`}>
+                        <step.icon size={20} />
+                      </div>
+                      <span className="text-[11px] font-black uppercase tracking-[0.3em]">{step.label}</span>
+                    </div>
+                    {step.status === 'done' && <CheckCircle2 size={20} className="animate-pulse" />}
                   </div>
-                  <CheckCircle size={16} />
-                </div>
-
-                <button 
-                  onClick={() => {
-                    setTaskStatus('RESTOCKING');
-                    showToast('Supplies verified', 'success');
-                  }}
-                  className={`w-full p-5 rounded-2xl border transition-all flex items-center justify-between ${taskStatus === 'RESTOCKING' || taskStatus === 'VERIFYING' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500' : 'bg-white/5 border-white/5 text-premium-text hover:bg-white/10'}`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Package size={16} />
-                    <span className="text-[10px] font-bold uppercase tracking-widest">Verify Supplies</span>
-                  </div>
-                  {(taskStatus === 'RESTOCKING' || taskStatus === 'VERIFYING') && <CheckCircle size={16} />}
-                </button>
-
-                <label className={`w-full p-5 rounded-2xl border transition-all flex items-center justify-between cursor-pointer ${taskStatus === 'VERIFYING' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500' : 'bg-white/5 border-white/5 text-premium-text hover:bg-white/10'}`}>
-                  <div className="flex items-center gap-3">
-                    <Camera size={16} />
-                    <span className="text-[10px] font-bold uppercase tracking-widest">Verification Photo</span>
-                  </div>
-                  {taskStatus === 'VERIFYING' ? <CheckCircle size={16} /> : <ArrowRight size={16} />}
-                  <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoUpload} />
-                </label>
-
-                <button 
-                  onClick={handleComplete}
-                  disabled={taskStatus !== 'VERIFYING' || isSubmitting}
-                  className="w-full py-6 bg-premium-accent text-white rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] shadow-lg shadow-premium-accent/20 disabled:opacity-50 mt-6 flex items-center justify-center gap-2"
-                >
-                  {isSubmitting ? <RefreshCw className="animate-spin" size={16} /> : null}
-                  {isSubmitting ? 'Verifying...' : 'Complete & Verify'}
-                </button>
+                ))}
               </div>
+
+              <div className="flex flex-col gap-6 mt-4 relative z-10">
+                {taskStatus === 'IN_PROGRESS' && (
+                  <button 
+                    onClick={() => setTaskStatus('RESTOCKING')}
+                    className="w-full py-8 bg-premium-accent text-white rounded-[2.5rem] font-black text-xs uppercase tracking-[0.4em] shadow-2xl shadow-premium-accent/20 hover:scale-[1.02] active:scale-95 transition-all duration-500"
+                  >
+                    Authorize Supplies
+                  </button>
+                )}
+
+                {taskStatus === 'RESTOCKING' && (
+                  <label className="w-full py-8 bg-white text-black rounded-[2.5rem] font-black text-xs uppercase tracking-[0.4em] shadow-2xl hover:scale-[1.02] active:scale-95 transition-all duration-500 flex items-center justify-center gap-4 cursor-pointer">
+                    <Camera size={24} />
+                    Capture Log Proof
+                    <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoUpload} />
+                  </label>
+                )}
+
+                {taskStatus === 'VERIFYING' && (
+                  <button 
+                    onClick={handleComplete}
+                    disabled={isSubmitting}
+                    className="w-full py-8 bg-emerald-600 text-white rounded-[2.5rem] font-black text-xs uppercase tracking-[0.4em] shadow-2xl shadow-emerald-600/20 hover:scale-[1.02] active:scale-95 transition-all duration-500 flex items-center justify-center gap-4 disabled:opacity-50"
+                  >
+                    {isSubmitting ? <RefreshCw size={24} className="animate-spin" /> : <Shield size={24} />}
+                    {isSubmitting ? 'Syncing...' : 'Verify & Close Log'}
+                  </button>
+                )}
+              </div>
+              {/* Background Decoration */}
+              <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-br from-premium-accent/5 to-transparent pointer-events-none" />
             </motion.div>
           ) : (
             <motion.div 
               key="list"
-              initial={{ opacity: 0 }} 
+              initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              className="flex flex-col gap-10"
             >
-              <div className="flex items-center gap-3 mb-6 px-4">
-                 <Shield size={14} className="text-premium-accent" />
-                 <h3 className="text-premium-muted text-[10px] font-bold uppercase tracking-widest">Pending Assignments</h3>
+              <div className="flex justify-between items-center px-4">
+                <div className="flex items-center gap-4">
+                   <ClipboardList size={18} className="text-premium-accent" />
+                   <h3 className="text-[11px] font-black text-premium-muted uppercase tracking-[0.4em]">Active Protocols</h3>
+                </div>
+                <span className="px-5 py-2 bg-white/5 text-premium-muted text-[10px] font-black rounded-xl border border-white/10 backdrop-blur-xl shadow-inner">{pendingTasks.length} NODES</span>
               </div>
-              <div className="space-y-4">
-                {pendingTasks.length > 0 ? pendingTasks.map(a => (
+
+              <div className="flex flex-col gap-6">
+                {pendingTasks.length > 0 ? pendingTasks.map((task) => (
                   <button
-                    key={a.id}
-                    onClick={() => handleStartTask(a)}
-                    className="w-full p-6 bg-white/5 border border-white/5 rounded-[2rem] hover:border-premium-accent/30 transition-all text-left flex items-center justify-between group"
+                    key={task.id}
+                    onClick={() => handleStartTask(task)}
+                    className="w-full glass-panel p-10 rounded-[3rem] text-left hover:border-premium-accent/40 transition-all duration-500 group flex justify-between items-center shadow-2xl border-white/5 relative overflow-hidden"
                   >
-                    <div className="max-w-[70%]">
-                      <div className="text-lg font-bold text-premium-text group-hover:text-premium-accent transition-colors truncate">{a.facility_name}</div>
-                      <div className="text-[9px] text-premium-muted font-bold uppercase tracking-widest mt-1 truncate">{a.description}</div>
+                    <div className="flex-1 pr-8 relative z-10">
+                      <h4 className="text-3xl font-black text-white tracking-tighter group-hover:text-premium-accent transition-colors duration-500">{task.facility_name}</h4>
+                      <p className="text-[10px] font-black text-premium-muted uppercase tracking-[0.3em] mt-4 leading-relaxed opacity-60">{task.description}</p>
                     </div>
-                    <div className="p-3 bg-white/5 rounded-full group-hover:bg-premium-accent/10 transition-all">
-                       <ArrowRight className="text-premium-muted group-hover:text-premium-accent" size={16} />
+                    <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center text-premium-muted group-hover:text-white transition-all duration-500 group-hover:bg-premium-accent group-hover:rotate-90 border border-white/5 relative z-10 shadow-2xl">
+                      <ChevronRight size={24} />
                     </div>
+                    <div className="absolute inset-0 bg-gradient-to-br from-premium-accent/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
                   </button>
                 )) : (
-                  <div className="text-center py-12 glass-panel">
-                    <CheckCircle className="text-emerald-500/20 mx-auto mb-4" size={48} />
-                    <p className="text-[10px] text-premium-muted uppercase tracking-widest font-bold">No active maintenance tickets</p>
-                  </div>
-                )}
-                
-                {/* Fallback to facilities if no alerts, to ensure staff can always work */}
-                {pendingTasks.length === 0 && facilities.length > 0 && (
-                  <div className="mt-8">
-                    <p className="text-[8px] text-premium-muted uppercase tracking-[0.2em] font-bold mb-4 px-4">Manual Service Check</p>
-                    {facilities.slice(0, 2).map(f => (
-                      <button
-                        key={f.id}
-                        onClick={() => handleStartTask({ id: `manual-${f.id}`, facility_id: f.id, facility_name: f.name, description: 'Routine Check' })}
-                        className="w-full p-6 bg-white/5 border border-white/5 rounded-[2rem] hover:border-premium-accent/30 transition-all text-left flex items-center justify-between group mb-4"
-                      >
-                        <div>
-                          <div className="text-lg font-bold text-premium-text group-hover:text-premium-accent transition-colors">{f.name}</div>
-                          <div className="text-[9px] text-premium-muted font-bold uppercase tracking-widest mt-1">Manual Verification</div>
-                        </div>
-                        <ArrowRight className="text-premium-muted group-hover:text-premium-accent" size={16} />
-                      </button>
-                    ))}
+                  <div className="text-center py-32 bg-white/[0.02] rounded-[4rem] border-2 border-dashed border-white/10 relative overflow-hidden group">
+                    <div className="w-24 h-24 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-10 border border-emerald-500/20 shadow-2xl group-hover:scale-110 transition-transform duration-1000">
+                      <CheckCircle2 size={40} className="text-emerald-500" />
+                    </div>
+                    <p className="text-[11px] font-black text-premium-muted uppercase tracking-[0.4em] relative z-10">Operational Zones Clear</p>
+                    <div className="absolute inset-0 bg-gradient-to-t from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
                   </div>
                 )}
               </div>
 
-              <div className="mt-12 p-6 rounded-2xl bg-white/5 border border-white/5 flex items-start gap-4">
-                 <Info size={16} className="text-premium-accent mt-1" />
-                 <p className="text-[10px] text-premium-muted leading-relaxed uppercase tracking-widest font-bold">
-                   Assignments are prioritized based on live sensor data and citizen feedback.
-                 </p>
+              {/* Session Performance Card */}
+              <div className="mt-8 p-12 bg-premium-accent rounded-[3.5rem] shadow-[0_40px_100px_-15px_rgba(59,130,246,0.4)] flex justify-between items-center overflow-hidden relative group border border-white/10">
+                <div className="relative z-10">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Target size={14} className="text-white/60" />
+                    <span className="text-[10px] font-black text-white/60 uppercase tracking-[0.4em]">Efficiency Metrics</span>
+                  </div>
+                  <div className="text-4xl font-black text-white tracking-tighter">12 Nodes <span className="text-white/40">Synced</span></div>
+                </div>
+                <div className="w-16 h-16 rounded-[1.5rem] bg-white/20 backdrop-blur-xl flex items-center justify-center relative z-10 border border-white/20 group-hover:rotate-12 transition-transform duration-700 shadow-2xl">
+                   <Zap size={28} className="text-white" />
+                </div>
+                {/* Background Decor */}
+                <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full -mr-20 -mt-20 blur-[100px] group-hover:scale-150 transition-transform duration-[2s]" />
+                <div className="absolute bottom-0 left-0 w-32 h-32 bg-black/10 rounded-full -ml-10 -mb-10 blur-[80px]" />
               </div>
             </motion.div>
           )}

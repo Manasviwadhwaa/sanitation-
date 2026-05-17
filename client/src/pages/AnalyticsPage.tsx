@@ -1,164 +1,139 @@
-import React, { useMemo } from 'react';
-import { motion } from 'framer-motion';
-import { Activity, Zap, TrendingUp, Search, Clock, ArrowLeft, BarChart3, PieChart } from 'lucide-react';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  CheckCircle, 
+  Clock, 
+  TrendingUp, 
+  AlertTriangle, 
+  HelpCircle,
+  RefreshCw,
+  Search,
+  ArrowRight
+} from 'lucide-react';
+import { useLiveData } from '../context/LiveDataContext';
+import SimpleFacilityCard from '../components/UI/SimpleFacilityCard';
 import { useNavigate } from 'react-router-dom';
 
 const AnalyticsPage: React.FC = () => {
+  const { globalStats, wardPerformance, facilities } = useLiveData();
   const navigate = useNavigate();
-  // Simulated Analytics Data
-  const heatmap = useMemo(() => {
-    return Array.from({ length: 168 }).map((_, i) => ({
-      day: Math.floor(i / 24),
-      hour: i % 24,
-      value: Math.floor(Math.random() * 100)
-    }));
-  }, []);
 
-  const trends = useMemo(() => ({
-    peak_hours: ['14:00', '18:30'],
-    satisfaction: [4.2, 4.5, 3.8, 4.1, 4.3, 4.6, 4.8]
-  }), []);
+  const summaryMetrics = [
+    { label: 'Overall Health', value: 'Excellent', sub: '98% of city is clear', icon: CheckCircle, color: 'text-emerald-500' },
+    { label: 'Busy Areas', value: 'None', sub: 'Wait times are low', icon: Clock, color: 'text-blue-500' },
+    { label: 'Citizen Rating', value: '4.8/5', sub: 'Based on 500 reviews', icon: TrendingUp, color: 'text-emerald-400' },
+    { label: 'Needs Cleaning', value: globalStats?.open_alerts || 0, sub: 'Assigned to team', icon: AlertTriangle, color: 'text-amber-500' },
+  ];
 
   return (
-    <div className="min-h-screen bg-premium-bg pt-24 pb-20 px-6 overflow-x-hidden">
-      <div className="max-w-6xl mx-auto relative z-10">
-        <header className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
-          <div>
-            <button 
-              onClick={() => navigate('/')}
-              className="group flex items-center gap-2 text-[10px] text-premium-muted font-bold uppercase tracking-widest hover:text-premium-text transition-all mb-6"
-            >
-              <div className="p-2 rounded-full border border-white/5 group-hover:bg-white/5 transition-all">
-                <ArrowLeft size={14} />
-              </div>
-              Back to surface
-            </button>
-            <div className="flex items-center gap-3 mb-4">
-               <div className="w-8 h-[1px] bg-premium-accent" />
-               <span className="text-premium-accent text-[10px] font-bold uppercase tracking-[0.3em]">Insights</span>
+    <div className="space-y-12">
+      {/* Human-Friendly Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold text-white tracking-tight">City Performance</h1>
+          <p className="text-sm text-slate-400 max-w-lg">
+            A simple overview of how the city is being maintained and how people feel about the services.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-[10px] font-bold text-emerald-500 uppercase tracking-widest">
+           <RefreshCw size={12} className="animate-spin-slow" />
+           Updated 10 seconds ago
+        </div>
+      </div>
+
+      {/* Simplified Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {summaryMetrics.map((m, i) => (
+          <div key={i} className="bg-[#0f0f0f] border border-[#1f1f1f] p-8 rounded-2xl space-y-4">
+            <div className={`w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center ${m.color}`}>
+              <m.icon size={20} />
             </div>
-            <h1 className="text-5xl font-bold text-premium-text tracking-tighter">System <span className="text-premium-subtle">Dynamics</span></h1>
+            <div>
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-1">{m.label}</p>
+              <h3 className="text-2xl font-bold text-white">{m.value}</h3>
+              <p className="text-[11px] text-slate-500 font-medium mt-1">{m.sub}</p>
+            </div>
           </div>
+        ))}
+      </div>
 
-          <div className="flex items-center gap-3 p-1.5 bg-white/5 border border-white/5 rounded-full backdrop-blur-xl">
-             <Search size={14} className="ml-3 text-premium-muted" />
-             <select className="bg-transparent text-[10px] text-premium-text font-bold uppercase focus:outline-none appearance-none cursor-pointer pr-4 py-2">
-               <option className="bg-premium-bg">Global Network</option>
-               <option className="bg-premium-bg">Transit Zone</option>
-               <option className="bg-premium-bg">Commercial Zone</option>
-             </select>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 pt-8">
+        
+        {/* Simplified Ward Rankings */}
+        <div className="lg:col-span-2 space-y-8">
+          <div className="flex justify-between items-center border-b border-white/5 pb-4">
+            <h2 className="text-sm font-bold text-white uppercase tracking-widest">Cleanliness by Area</h2>
+            <HelpCircle size={14} className="text-slate-600" />
           </div>
-        </header>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Density Heatmap */}
-          <div className="lg:col-span-2 glass-panel p-8">
-             <div className="flex items-center justify-between mb-12">
-                <div className="flex items-center gap-3">
-                   <div className="p-2 bg-premium-accent/10 rounded-lg">
-                      <BarChart3 size={18} className="text-premium-accent" />
-                   </div>
-                   <h3 className="text-lg font-bold text-premium-text tracking-tight">Usage Density Matrix</h3>
-                </div>
-                <div className="px-3 py-1 bg-white/5 rounded-full text-[8px] font-bold text-premium-muted uppercase tracking-widest">7 Day Cycle</div>
-             </div>
-             
-             <div className="grid grid-cols-[auto_1fr] gap-4">
-                <div className="flex flex-col justify-between text-[8px] text-premium-subtle font-bold uppercase py-2">
-                   {['Mon', 'Wed', 'Fri', 'Sun'].map(d => <span key={d}>{d}</span>)}
-                </div>
-                <div className="grid grid-cols-24 gap-1">
-                   {heatmap.map((h, i) => (
-                     <motion.div 
-                      key={i} 
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: i * 0.002 }}
-                      className="aspect-square rounded-sm transition-all hover:scale-150 cursor-crosshair"
-                      style={{ 
-                        backgroundColor: `rgba(59, 130, 246, ${h.value / 100})`,
-                      }}
-                     />
-                   ))}
-                </div>
-             </div>
-
-             <div className="mt-12 flex justify-between items-center border-t border-white/5 pt-8">
-                <div className="flex items-start gap-4">
-                   <div className="p-2 bg-emerald-500/10 rounded-lg">
-                      <TrendingUp size={14} className="text-emerald-500" />
-                   </div>
-                   <div>
-                      <p className="text-[10px] text-premium-muted font-bold uppercase tracking-widest mb-1">Observation</p>
-                      <p className="text-xs text-premium-text font-medium leading-relaxed max-w-sm">
-                        Network traffic peaks consistently during transit transitions (08:00 - 10:00).
-                      </p>
-                   </div>
-                </div>
-                <div className="flex items-center gap-4 text-[8px] text-premium-muted font-bold uppercase tracking-widest">
-                   <span>Low</span>
-                   <div className="flex gap-1">
-                      {[0.2, 0.4, 0.6, 0.8, 1].map(o => (
-                        <div key={o} className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: `rgba(59, 130, 246, ${o})` }} />
-                      ))}
-                   </div>
-                   <span>Peak</span>
-                </div>
-             </div>
-          </div>
-
-          {/* Secondary Intelligence Cards */}
-          <div className="lg:col-span-1 space-y-8">
-             <div className="glass-panel p-8 relative overflow-hidden group">
-               <div className="relative z-10">
-                 <Zap className="text-status-attention mb-6 group-hover:scale-110 transition-transform" size={24} />
-                 <div className="text-[10px] text-premium-muted font-bold uppercase tracking-widest mb-2">Efficiency Forecast</div>
-                 <div className="text-4xl font-bold text-premium-text mb-2 tracking-tighter">{trends.peak_hours[0]}</div>
-                 <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-[9px] text-premium-subtle font-bold uppercase tracking-widest">Optimal Cleaning Window</span>
+          
+          <div className="space-y-6">
+             {wardPerformance?.slice(0, 5).map((ward, i) => (
+               <div key={i} className="flex items-center gap-6">
+                 <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-sm font-bold text-slate-400">
+                    {i + 1}
+                 </div>
+                 <div className="flex-1 space-y-2">
+                    <div className="flex justify-between text-xs font-bold">
+                       <span className="text-white">Ward Area {ward.ward_number}</span>
+                       <span className="text-slate-400">{ward.avg_compliance > 80 ? 'Excellent' : 'Average'}</span>
+                    </div>
+                    <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                       <div className={`h-full ${ward.avg_compliance > 80 ? 'bg-emerald-500' : 'bg-blue-500'}`} style={{ width: `${ward.avg_compliance}%` }} />
+                    </div>
+                 </div>
+                 <div className="text-right">
+                    <p className="text-xs font-bold text-white">{ward.avg_compliance}%</p>
+                    <p className="text-[9px] text-slate-500 font-bold uppercase tracking-tighter">Rating</p>
                  </div>
                </div>
-               <div className="absolute -bottom-4 -right-4 opacity-5 pointer-events-none group-hover:opacity-10 transition-opacity">
-                  <PieChart size={120} />
-               </div>
-             </div>
+             ))}
+          </div>
+        </div>
 
-             <div className="glass-panel p-8">
-                <div className="flex items-center justify-between mb-10">
-                   <h4 className="text-[10px] text-premium-muted font-bold uppercase tracking-widest">Public Satisfaction</h4>
-                   <Activity size={14} className="text-premium-subtle" />
-                </div>
-                
-                <div className="flex items-end gap-2 h-32 mb-6">
-                  {trends.satisfaction.map((s, i) => (
-                    <motion.div 
-                      key={i} 
-                      initial={{ height: 0 }}
-                      animate={{ height: `${(s / 5) * 100}%` }}
-                      transition={{ delay: i * 0.1, duration: 0.8, ease: [0.23, 1, 0.32, 1] }}
-                      className="flex-1 bg-premium-accent/20 border-t border-premium-accent rounded-t-sm relative group"
-                    >
-                       <div className="absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-[8px] font-bold text-white">
-                         {s}
-                       </div>
-                    </motion.div>
-                  ))}
-                </div>
-                <div className="flex justify-between text-[8px] text-premium-subtle font-bold uppercase tracking-widest">
-                  <span>Mon</span>
-                  <span>Sun</span>
-                </div>
-             </div>
+        {/* Actionable Advice / Prediction */}
+        <div className="space-y-8">
+          <div className="bg-blue-600 rounded-3xl p-8 text-white">
+            <h3 className="text-xl font-bold mb-4">Daily Tip</h3>
+            <p className="text-sm text-blue-100/90 leading-relaxed mb-8">
+              Based on our data, <span className="font-bold underline decoration-blue-200">Area 4</span> might get a bit busy around 6:30 PM. It might be a good time to check cleaning staff schedules there.
+            </p>
+            <button className="w-full py-4 bg-white text-blue-600 rounded-xl text-xs font-bold uppercase tracking-widest hover:scale-105 transition-all">
+               Check Area 4 Now
+            </button>
+          </div>
 
-             <div className="p-6 rounded-2xl bg-white/2 border border-white/5 flex items-center gap-4">
-                <Clock size={16} className="text-premium-accent" />
-                <span className="text-[9px] text-premium-muted font-bold uppercase tracking-widest leading-relaxed">
-                  Real-time synchronization active. Last recalculated 2m ago.
-                </span>
+          <div className="bg-[#0f0f0f] border border-[#1f1f1f] p-8 rounded-3xl space-y-6">
+             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Recent Updates</h3>
+             <div className="space-y-6">
+                {[
+                  { msg: 'Cleaning finished in Area 2', time: 'Just now' },
+                  { msg: 'New review: "Very clean!"', time: '10m ago' },
+                  { msg: 'Trash bin emptied in Area 5', time: '1h ago' }
+                ].map((update, i) => (
+                  <div key={i} className="flex gap-4">
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5" />
+                    <div>
+                       <p className="text-xs font-bold text-white">{update.msg}</p>
+                       <p className="text-[10px] text-slate-500 font-bold">{update.time}</p>
+                    </div>
+                  </div>
+                ))}
              </div>
           </div>
         </div>
+      </div>
+
+      {/* Simplified Node Grid */}
+      <div className="pt-12">
+        <h2 className="text-sm font-bold text-white uppercase tracking-widest mb-10 border-b border-white/5 pb-4">Check Specific Places</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {facilities.slice(0, 3).map(f => (
+            <SimpleFacilityCard key={f.id} facility={f} onClick={() => navigate(`/dashboard/facility/${f.id}`)} />
+          ))}
+        </div>
+        <button className="w-full mt-10 py-4 border border-white/10 rounded-2xl text-[10px] font-bold text-slate-500 uppercase tracking-widest hover:text-white hover:bg-white/5 transition-all">
+           See all 24 locations
+        </button>
       </div>
     </div>
   );

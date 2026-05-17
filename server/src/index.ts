@@ -1,18 +1,24 @@
 import express from 'express';
-import { createServer } from 'http';
-import { Server } from 'socket.io';
-import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
-import { fileURLToPath } from 'url';
-import morgan from 'morgan';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
 import mongoose from 'mongoose';
 
+// Load Env
+dotenv.config({ path: path.join(process.cwd(), '.env.local') });
+dotenv.config();
+
+// Initialize App & Server
+import { app, httpServer, uploadDir } from './app.js';
+import { io } from './socket.js';
+
+// Initialize DB and Jobs
 import { db, initDB } from './db/setup.js';
 import { connectDB } from './db/mongo.js';
 import { initSensorJob } from './jobs/sensorJob.js';
 
+// Routes
 import authRoutes from './routes/auth.js';
 import facilityRoutes from './routes/facilities.js';
 import feedbackRoutes from './routes/feedback.js';
@@ -22,68 +28,33 @@ import dashboardRoutes from './routes/dashboard.js';
 import maintenanceRoutes from './routes/maintenance.js';
 import inspectionRoutes from './routes/inspections.js';
 import budgetRoutes from './routes/budget.js';
+import adminRoutes from './routes/admin.js';
 import aiRoutes from './routes/ai.js';
 import devRoutes from './routes/dev.js';
 
-dotenv.config({ path: path.join(process.cwd(), '.env.local') });
-dotenv.config();
-
-const uploadDir = path.join(process.cwd(), 'uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-const app = express();
-const port = process.env.PORT || 4000;
-
-app.use(morgan('dev'));
-app.use(cors({ origin: true, credentials: true }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use('/uploads', express.static(uploadDir));
-
-export const httpServer = createServer(app);
-export const io = new Server(httpServer, {
-  cors: { origin: '*', methods: ['GET', 'POST'] },
-  connectionStateRecovery: {
-    maxDisconnectionDuration: 2 * 60 * 1000,
-    skipMiddlewares: true,
-  }
-});
-
-io.on('connection', (socket) => {
-  console.log(`📡 [Socket] Connected: ${socket.id}`);
-});
-
-// Initialize DB and Jobs
-console.log('🏗️ [System] Initializing Services...');
-initDB().then(() => {
-  console.log('✅ [SQLite] Database Ready');
-  connectDB().then(() => {
-    console.log('✅ [MongoDB] Check Completed');
-    initSensorJob();
-    console.log('🚀 [Jobs] Sensor Simulation Started');
-  });
-}).catch(err => {
-  console.error('❌ [System] Initialization Failed:', err);
-});
+const port = process.env.PORT || 4001;
 
 // Health Check
 app.get('/api/health', (_req, res) => {
-  const dbStatus = db.prepare('SELECT 1').get() ? 'connected' : 'error';
-  res.json({ 
-    status: 'online', 
-    service: 'SAAF-Gateway',
-    database: dbStatus,
-    mongo: mongoose.connection.readyState === 1 ? 'connected' : 'fallback',
-    nvidia: !!process.env.NVIDIA_API_KEY ? 'configured' : 'missing',
-    environment: process.env.NODE_ENV || 'development',
-    timestamp: new Date().toISOString()
-  });
+  try {
+    const dbStatus = db.prepare('SELECT 1').get() ? 'connected' : 'error';
+    res.json({ 
+      status: 'online', 
+      service: 'SAAF-Gateway',
+      database: dbStatus,
+      mongo: mongoose.connection.readyState === 1 ? 'connected' : 'fallback',
+      nvidia: !!process.env.NVIDIA_API_KEY ? 'configured' : 'missing',
+      environment: process.env.NODE_ENV || 'development',
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    res.status(500).json({ status: 'error', database: 'disconnected' });
+  }
 });
 
 // Register Unified Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/facilities', facilityRoutes);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/photos', photoRoutes);
@@ -116,7 +87,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // Error Handling
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: any, req: any, res: any, next: any) => {
   console.error('🔥 [Error]:', err);
   res.status(err.status || 500).json({
     error: true,
@@ -124,6 +95,34 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   });
 });
 
-httpServer.listen(port, () => {
-  console.log(`🚀 SAAF Gateway running on port ${port}`);
-});
+// Start Services sequentially
+const startServer = async () => {
+  try {
+    console.log('🏗️ [System] Initializing Services...');
+    
+    // 1. Database
+    await initDB();
+    console.log('✅ [SQLite] Database Ready');
+
+    // 2. MongoDB (Non-blocking fallback)
+    connectDB().then(() => {
+      console.log('✅ [MongoDB] Check Completed');
+    });
+
+    // 3. Jobs
+    initSensorJob();
+    console.log('🚀 [Jobs] Sensor Simulation Started');
+
+    // 4. Listen
+    httpServer.listen(port, () => {
+      console.log(`🚀 SAAF Gateway running on port ${port}`);
+    });
+  } catch (err) {
+    console.error('❌ [System] Initialization Failed:', err);
+    process.exit(1);
+  }
+};
+
+startServer();
+
+export { io }; // Re-export for compatibility with some routes if needed, but better to import from socket.js

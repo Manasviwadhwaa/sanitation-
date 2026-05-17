@@ -1,5 +1,6 @@
 import express from 'express';
 import { db } from '../db/setup.js';
+import { supabase, isSupabaseConfigured } from '../db/supabase.js';
 import { getFacilityHealthSummary } from '../services/analyticsService.js';
 
 const router = express.Router();
@@ -50,14 +51,27 @@ router.get('/recommendation', async (req, res) => {
 });
 
 // 2. Facilities List
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const facilities = db.prepare('SELECT * FROM facilities').all() as any[];
-    const enriched = facilities.map(f => ({
+    let facilities: any[] = [];
+
+    // 1. Primary: Supabase
+    if (isSupabaseConfigured()) {
+      const { data, error } = await supabase.from('facilities').select('*').order('name');
+      if (!error && data) facilities = data;
+    }
+
+    // 2. Fallback: SQLite
+    if (facilities.length === 0) {
+      facilities = db.prepare('SELECT * FROM facilities ORDER BY name').all() as any[];
+    }
+
+    const enriched = await Promise.all(facilities.map(async (f) => ({
       ...f,
-      health: getFacilityHealthSummary(f.id),
+      health: await getFacilityHealthSummary(f.id),
       is_accessible: true
-    }));
+    })));
+
     res.json(enriched);
   } catch (error: any) {
     res.status(500).json({ error: error.message });

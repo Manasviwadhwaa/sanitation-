@@ -1,6 +1,7 @@
 import cron from 'node-cron';
 import { db } from '../db/setup.js';
-import { io } from '../index.js';
+import { supabase, isSupabaseConfigured } from '../db/supabase.js';
+import { io } from '../socket.js';
 
 export const initSensorJob = () => {
   cron.schedule('*/10 * * * * *', () => {
@@ -30,6 +31,18 @@ export const initSensorJob = () => {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `).run(facility.id, ammonia, humidity, floor_wet, 1, tissue, soap, new Date().toISOString());
 
+      if (isSupabaseConfigured()) {
+        supabase.from('sensor_readings').insert({
+          facility_id: facility.id,
+          ammonia_level: ammonia,
+          humidity,
+          floor_wet: !!floor_wet,
+          flush_count: 1,
+          tissue_level: tissue,
+          soap_level: soap
+        }).then(); // Fire and forget for speed
+      }
+
       // 3. Compute Cleanliness Status
       let status = 'GREEN';
       let reason = 'All systems optimal';
@@ -48,6 +61,14 @@ export const initSensorJob = () => {
         db.prepare('INSERT INTO cleanliness_status (facility_id, status, reason, updated_at) VALUES (?, ?, ?, ?)')
           .run(facility.id, status, reason, new Date().toISOString());
         
+        if (isSupabaseConfigured()) {
+          supabase.from('cleanliness_status').insert({
+            facility_id: facility.id,
+            status,
+            reason
+          }).then();
+        }
+
         io.emit('status_change', {
           facility_id: facility.id,
           old_status: lastStatus?.status || 'UNKNOWN',
@@ -62,6 +83,15 @@ export const initSensorJob = () => {
         const confidence = 60 + Math.random() * 35;
         db.prepare('INSERT INTO predicted_rush (facility_id, predicted_at, surge_in_mins, confidence_pct, source) VALUES (?, ?, ?, ?, ?)')
           .run(facility.id, new Date().toISOString(), surge, confidence, 'Neural-Gateway-V1');
+
+        if (isSupabaseConfigured()) {
+          supabase.from('predicted_rush').insert({
+            facility_id: facility.id,
+            surge_in_mins: surge,
+            confidence_pct: confidence,
+            source: 'Neural-Gateway-V1'
+          }).then();
+        }
       }
 
       // 5. Update Queue
@@ -72,6 +102,15 @@ export const initSensorJob = () => {
 
       db.prepare('INSERT INTO crowd_queue (facility_id, current_users, wait_time_mins, pressure_level, timestamp) VALUES (?, ?, ?, ?, ?)')
         .run(facility.id, currentUsers, waitTime, pressure, new Date().toISOString());
+
+      if (isSupabaseConfigured()) {
+        supabase.from('crowd_queue').insert({
+          facility_id: facility.id,
+          current_users: currentUsers,
+          wait_time_mins: waitTime,
+          pressure_level: pressure
+        }).then();
+      }
 
       // 5. Emit Events
       io.emit('sensor_update', {
@@ -107,6 +146,16 @@ export const initSensorJob = () => {
         `).run(facility.id, severity, taskReason, reason, new Date().toISOString(), facility.id, taskReason);
 
         if (task.changes > 0) {
+          if (isSupabaseConfigured()) {
+            supabase.from('maintenance_tasks').insert({
+              facility_id: facility.id,
+              status: 'PENDING',
+              priority: severity,
+              issue_reason: taskReason,
+              description: reason
+            }).then();
+          }
+
           io.emit('maintenance_alert', {
             id: task.lastInsertRowid,
             facility_id: facility.id,

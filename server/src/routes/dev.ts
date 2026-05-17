@@ -1,5 +1,5 @@
 import express from 'express';
-import { initDB } from '../db/setup.js';
+import { resetDB } from '../db/setup.js';
 
 const router = express.Router();
 
@@ -8,7 +8,7 @@ const router = express.Router();
 router.post('/reset', async (req, res) => {
   try {
     console.log('🔄 [Dev] Resetting and Re-seeding database...');
-    await initDB();
+    await resetDB();
     res.json({ status: 'success', message: 'Database reset and seeded with fresh data' });
   } catch (error: any) {
     res.status(500).json({ error: 'Reset failed', message: error.message });

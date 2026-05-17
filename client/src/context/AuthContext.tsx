@@ -4,14 +4,16 @@ import { jwtDecode } from 'jwt-decode';
 interface User {
   id: number;
   name: string;
-  role: 'admin' | 'cleaner';
+  role: string;
+  permissions: string[];
 }
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (credentials: any) => Promise<void>;
+  login: (credentials: any) => Promise<boolean>;
   logout: () => void;
+  hasPermission: (action: string, module: string) => boolean;
   isAuthenticated: boolean;
   isLoading: boolean;
 }
@@ -20,7 +22,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('saaf_token'));
+  const [token, setToken] = useState<string | null>(localStorage.getItem('sanitrax_token'));
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -28,34 +30,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const decoded: any = jwtDecode(token);
         if (decoded.exp * 1000 < Date.now()) {
-          // Keep session for demo purposes even if expired
-          const savedUser = localStorage.getItem('saaf_user');
-          if (savedUser) setUser(JSON.parse(savedUser));
+          logout();
         } else {
-          const savedUser = localStorage.getItem('saaf_user');
-          if (savedUser) setUser(JSON.parse(savedUser));
+          // Re-hydrate user from token or storage
+          const savedUser = localStorage.getItem('sanitrax_user');
+          if (savedUser) {
+            setUser(JSON.parse(savedUser));
+          } else {
+            setUser({
+              id: decoded.id,
+              name: decoded.name,
+              role: decoded.role,
+              permissions: decoded.permissions || []
+            });
+          }
         }
       } catch (e) {
-        // Fallback to demo user
-        setUser({ id: 0, name: 'Guest Admin', role: 'admin' });
+        logout();
       }
-    } else {
-      // DEFAULT TO ADMIN FOR PASSWORD-LESS ACCESS
-      setUser({ id: 0, name: 'Guest Admin', role: 'admin' });
     }
     setIsLoading(false);
   }, [token]);
 
   const getApiUrl = () => {
     if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
-    
     const hostname = window.location.hostname;
-    
-    // Localhost dev points to server port
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      return `http://localhost:4000`;
-    }
-    // Production uses same origin
+    if (hostname === 'localhost' || hostname === '127.0.0.1') return `http://localhost:4001`;
     return window.location.origin;
   };
 
@@ -74,19 +74,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const data = await response.json();
     setToken(data.token);
     setUser(data.user);
-    localStorage.setItem('saaf_token', data.token);
-    localStorage.setItem('saaf_user', JSON.stringify(data.user));
+    localStorage.setItem('sanitrax_token', data.token);
+    localStorage.setItem('sanitrax_user', JSON.stringify(data.user));
+    return true;
   };
 
   const logout = () => {
     setToken(null);
     setUser(null);
-    localStorage.removeItem('saaf_token');
-    localStorage.removeItem('saaf_user');
+    localStorage.removeItem('sanitrax_token');
+    localStorage.removeItem('sanitrax_user');
+  };
+
+  const hasPermission = (action: string, module: string) => {
+    if (!user) return false;
+    // SuperAdmin bypass or exact match
+    if (user.role === 'SuperAdmin') return true;
+    return user.permissions.includes(`${action}:${module}`);
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isAuthenticated: !!token, isLoading }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      token, 
+      login, 
+      logout, 
+      hasPermission,
+      isAuthenticated: !!token, 
+      isLoading 
+    }}>
       {children}
     </AuthContext.Provider>
   );

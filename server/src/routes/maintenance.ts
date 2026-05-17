@@ -1,63 +1,59 @@
 import express from 'express';
 import { db } from '../db/setup.js';
-import { io } from '../index.js';
-
-import { Facility, MaintenanceTask } from '../db/mongo.js';
-import mongoose from 'mongoose';
+import { io } from '../socket.js';
+import { authenticate, requirePermission, AuthRequest } from '../middleware/auth.js';
+import { logAudit } from '../services/auditService.js';
 
 const router = express.Router();
 
-// 1. Create Maintenance Task
-router.post('/create', async (req, res) => {
+// 1. Create Maintenance Task (Supervisor/Admin)
+router.post('/create', authenticate, requirePermission('WRITE', 'TASKS'), async (req: AuthRequest, res) => {
   try {
-    const { facility_id, issue_reason, assigned_to, severity, cost_estimate } = req.body;
+    const { facility_id, issue_reason, assigned_to_id, priority, cost_estimate } = req.body;
     
-    // SQL Logic (Primary)
     const info = db.prepare(`
-      INSERT INTO maintenance_tasks (facility_id, issue_reason, assigned_to, created_at, status, priority, cost_estimate)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(facility_id, issue_reason, assigned_to || 'UNASSIGNED', new Date().toISOString(), 'PENDING', severity || 'MEDIUM', cost_estimate || null);
+      INSERT INTO maintenance_tasks (facility_id, issue_reason, assigned_to_id, status, priority, cost_estimate, created_at)
+      VALUES (?, ?, ?, 'PENDING', ?, ?, ?)
+    `).run(facility_id, issue_reason, assigned_to_id || null, priority || 'MEDIUM', cost_estimate || 0, new Date().toISOString());
 
-    // MongoDB Logic (Parallel Persistence if connected)
-    if (mongoose.connection.readyState === 1) {
-      try {
-        const mFac = await Facility.findOne({ name: new RegExp(facility_id, 'i') }); 
-        await MaintenanceTask.create({
-          facility_id: mFac?._id || new mongoose.Types.ObjectId(),
-          issue_reason,
-          status: 'PENDING',
-          priority: severity || 'MEDIUM'
-        });
-      } catch (mErr) {
-        console.warn('⚠️ [MongoDB] Sync failed');
-      }
-    }
+    const taskId = info.lastInsertRowid;
+
+    // Audit Log
+    await logAudit({
+      actorId: req.user!.id,
+      actorRole: req.user!.role,
+      eventType: 'DATA_CHANGE',
+      module: 'TASKS',
+      recordId: Number(taskId),
+      afterPayload: { facility_id, issue_reason, assigned_to_id, priority },
+      ipAddress: req.ip
+    });
 
     io.emit('maintenance_alert', {
-      id: info.lastInsertRowid,
+      id: taskId,
       facility_id,
-      alert_type: 'MANUAL_TICKET',
+      alert_type: 'SYSTEM_TICKET',
       message: issue_reason,
-      severity: severity || 'MEDIUM',
+      severity: priority || 'MEDIUM',
       timestamp: new Date().toISOString()
     });
 
-    res.json({ id: info.lastInsertRowid, status: 'success' });
+    res.json({ id: taskId, status: 'success' });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// 2. Accept Task (Cleaner)
-router.put('/:id/accept', (req, res) => {
+// 2. Accept Task (Worker)
+router.put('/:id/accept', authenticate, requirePermission('WRITE', 'TASKS'), async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
     
     db.prepare(`
       UPDATE maintenance_tasks 
-      SET started_at = ?, status = 'IN_PROGRESS'
+      SET status = 'IN_PROGRESS', assigned_to_id = ?
       WHERE id = ?
-    `).run(new Date().toISOString(), id);
+    `).run(req.user!.id, id);
 
     res.json({ status: 'success' });
   } catch (error: any) {
@@ -65,69 +61,96 @@ router.put('/:id/accept', (req, res) => {
   }
 });
 
-// 3. Complete Task
-router.put('/:id/complete', async (req, res) => {
+// 3. Complete Task (Worker) - Moves to pending verification
+router.put('/:id/complete', authenticate, requirePermission('WRITE', 'TASKS'), async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
-    const { cost_inr, photo, coords, notes } = req.body;
+    const { photo, notes } = req.body;
     
     const task = db.prepare('SELECT * FROM maintenance_tasks WHERE id = ?').get(id) as any;
     if (!task) return res.status(404).json({ error: 'Task not found' });
 
-    const facility = db.prepare('SELECT name FROM facilities WHERE id = ?').get(task.facility_id) as any;
-
     const completed_at = new Date().toISOString();
-    const created_at = new Date(task.created_at);
-    const response_time_mins = Math.floor((new Date(completed_at).getTime() - created_at.getTime()) / 60000);
 
-    // Update Task (SQL)
     db.prepare(`
       UPDATE maintenance_tasks 
-      SET completed_at = ?, status = 'COMPLETED', verification_photo = ?, location_coords = ?
+      SET status = 'COMPLETED', verification_photo = ?, description = ?
       WHERE id = ?
-    `).run(completed_at, photo, JSON.stringify(coords), id);
+    `).run(photo, notes || 'Completed by worker', id);
 
-    // Log Budget
-    const amount = cost_inr || 500;
-    db.prepare(`
-      INSERT INTO budget_log (task_id, facility_id, amount, category, description, created_at)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(id, task.facility_id, amount, 'repair', notes || 'Maintenance task completion', completed_at);
+    // Audit Log
+    await logAudit({
+      actorId: req.user!.id,
+      actorRole: req.user!.role,
+      eventType: 'MAINTENANCE_LOG',
+      module: 'TASKS',
+      recordId: Number(id),
+      afterPayload: { status: 'COMPLETED', photo_uploaded: !!photo },
+      ipAddress: req.ip
+    });
 
-    // MongoDB Persistence (if connected)
-    if (mongoose.connection.readyState === 1) {
-      try {
-        // Find the task in Mongo by some unique property or just skip if ID mismatch
-        // For now, let's just log and skip to prevent crashes, or implement a proper mapping
-        const mTask = await MaintenanceTask.findOne({ issue_reason: task.issue_reason });
-        if (mTask) {
-          mTask.status = 'COMPLETED';
-          mTask.completed_at = new Date(completed_at);
-          await mTask.save();
-        }
-      } catch (err) {
-        console.warn('⚠️ [MongoDB] Completion sync failed');
-      }
-    }
-
-    // Emit real-time update
     io.emit('maintenance_update', {
       task_id: id,
       facility_id: task.facility_id,
-      facility_name: facility?.name,
-      status: 'COMPLETED',
-      photo,
-      coords,
-      completed_at
+      status: 'PENDING_VERIFICATION',
+      timestamp: completed_at
     });
 
-    // Reset Facility Cleanliness
-    db.prepare(`
-      INSERT INTO cleanliness_status (facility_id, status, reason, updated_at)
-      VALUES (?, 'GREEN', 'Sanitization completed', ?)
-    `).run(task.facility_id, completed_at);
+    res.json({ status: 'success', message: 'Task submitted for verification' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-    res.json({ status: 'success', response_time_mins });
+// 4. Verify Task (Supervisor/Inspector) - Finalizes and updates public status
+router.put('/:id/verify', authenticate, requirePermission('VERIFY', 'TASKS'), async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    const { notes } = req.body;
+    
+    const task = db.prepare('SELECT * FROM maintenance_tasks WHERE id = ?').get(id) as any;
+    if (!task) return res.status(404).json({ error: 'Task not found' });
+
+    const verified_at = new Date().toISOString();
+
+    // 1. Update Task
+    db.prepare(`
+      UPDATE maintenance_tasks 
+      SET status = 'VERIFIED', verified_at = ?, verified_by_id = ?
+      WHERE id = ?
+    `).run(verified_at, req.user!.id, id);
+
+    // 2. Update Facility Status to GREEN (Verified Source)
+    db.prepare(`
+      INSERT INTO cleanliness_status (facility_id, status, reason, source_type, updated_at, is_verified, verified_by)
+      VALUES (?, 'GREEN', ?, 'SUPERVISOR', ?, 1, ?)
+    `).run(task.facility_id, notes || 'Verified by supervisor', verified_at, req.user!.id);
+
+    // 3. Audit Log
+    await logAudit({
+      actorId: req.user!.id,
+      actorRole: req.user!.role,
+      eventType: 'DATA_CHANGE',
+      module: 'TASKS',
+      recordId: Number(id),
+      afterPayload: { status: 'VERIFIED', verified_by: req.user!.username },
+      ipAddress: req.ip
+    });
+
+    // 4. Update Budget (Mark as approved if linked)
+    db.prepare(`
+      UPDATE budget_log SET approval_state = 'APPROVED', approved_by_id = ? 
+      WHERE facility_id = ? AND created_at >= ?
+    `).run(req.user!.id, task.facility_id, task.created_at);
+
+    io.emit('status_change', {
+      facility_id: task.facility_id,
+      new_status: 'GREEN',
+      reason: 'Maintenance Verified',
+      source: 'SUPERVISOR'
+    });
+
+    res.json({ status: 'success', message: 'Task verified and public status updated' });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

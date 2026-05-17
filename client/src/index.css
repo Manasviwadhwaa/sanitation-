@@ -1,74 +1,84 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root {
-    --background: #02040a;
-    --foreground: #f8fafc;
-    --premium-accent: #3b82f6;
-  }
-
-  html {
-    -webkit-tap-highlight-color: transparent;
-    scroll-behavior: smooth;
-  }
-
-  body {
-    @apply bg-background text-foreground antialiased selection:bg-premium-accent/30 selection:text-white;
-    font-family: 'Outfit', 'Inter', system-ui, sans-serif;
-    background-image: 
-      radial-gradient(circle at 50% -20%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
-      radial-gradient(circle at 100% 100%, rgba(45, 212, 191, 0.02) 0%, transparent 40%);
-    background-attachment: fixed;
-  }
-
-  h1, h2, h3, h4, h5, h6 {
-    font-family: 'Outfit', sans-serif;
-    @apply tracking-tight;
-  }
+:root {
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --accent-primary: #3b82f6;
+  --border-color: rgba(255, 255, 255, 0.1);
 }
 
-@layer components {
-  .glass-panel {
-    @apply bg-premium-card backdrop-blur-premium border border-premium-border rounded-3xl transition-all duration-500;
-  }
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
 
-  .premium-button {
-    @apply px-6 py-3 bg-premium-accent text-white font-bold uppercase tracking-widest text-[10px] rounded-full hover:scale-105 active:scale-95 transition-all shadow-lg shadow-premium-accent/20;
-  }
+input, textarea, select {
+  color: #0f172a;
+}
 
-  .minimal-input {
-    @apply w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white outline-none focus:border-premium-accent transition-all text-sm;
-  }
+/* Accessibility Modes */
+html.high-contrast {
+  filter: contrast(1.45) saturate(1.15) !important;
+}
+
+html.large-text {
+  font-size: 1.125rem !important;
+}
+
+/* Simplified Card */
+.simple-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+}
+
+/* Simplified Sidebar */
+.sidebar-item {
+  display: flex;
+  items-center: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s;
+  color: var(--text-secondary);
+}
+
+.sidebar-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+}
+
+.sidebar-item.active {
+  background: var(--accent-primary);
+  color: white;
 }
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 10px;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
 
-/* Map Overrides */
-.leaflet-container {
-  @apply grayscale invert opacity-90;
-}
-
-.saaf-popup .leaflet-popup-content-wrapper {
-  @apply bg-premium-bg/90 backdrop-blur-xl border border-premium-border text-white rounded-2xl shadow-2xl;
-}
-.saaf-popup .leaflet-popup-tip {
-  @apply bg-premium-bg/90;
-}
-
+/* Utilities */
+.text-accent { color: var(--accent-primary); }
+.bg-accent { background-color: var(--accent-primary); }
+.border-subtle { border-color: var(--border-color); }

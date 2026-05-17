@@ -1,84 +1,93 @@
-import React, { useRef, useMemo } from 'react';
+import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
 const SafaiDrone: React.FC<{ manualOffset?: number }> = ({ manualOffset = 0 }) => {
   const meshRef = useRef<THREE.Group>(null);
 
-  const curve = useMemo(() => new THREE.CatmullRomCurve3([
-    new THREE.Vector3(0, 2, 0),
-    new THREE.Vector3(10, 8, -30),
-    new THREE.Vector3(-15, 4, -60),
-    new THREE.Vector3(8, -2, -90),
-    new THREE.Vector3(0, 5, -120),
-    new THREE.Vector3(-8, 3, -150),
-  ]), []);
-
+  // Smooth floating animation
   useFrame((state) => {
     if (!meshRef.current) return;
-
-    // Use manualOffset (scrolled %) to follow path
-    const t = Math.max(0, Math.min(manualOffset, 1));
-    const position = curve.getPointAt(t);
-    const lookAt = curve.getPointAt(Math.min(t + 0.05, 0.999));
-
-    // Idle Bobbing
     const time = state.clock.getElapsedTime();
-    const bobbing = Math.sin(time * 2) * 0.15;
     
-    meshRef.current.position.set(position.x, position.y + bobbing, position.z);
-
-    // Banking & Rotation
-    const targetMatrix = new THREE.Matrix4().lookAt(meshRef.current.position, lookAt, new THREE.Vector3(0, 1, 0));
-    const targetQuaternion = new THREE.Quaternion().setFromRotationMatrix(targetMatrix);
-    meshRef.current.quaternion.slerp(targetQuaternion, 0.1);
-
-    const xMovement = (lookAt.x - position.x) * 0.5;
-    meshRef.current.rotation.z = THREE.MathUtils.lerp(meshRef.current.rotation.z, -xMovement, 0.05);
-
-    // Smooth Camera Following
-    const cameraOffset = new THREE.Vector3(0, 2.5, 8);
-    cameraOffset.applyQuaternion(meshRef.current.quaternion);
-    
-    const targetCameraPos = meshRef.current.position.clone().add(cameraOffset);
-    state.camera.position.lerp(targetCameraPos, 0.08);
-    state.camera.lookAt(meshRef.current.position.clone().add(new THREE.Vector3(0, 0, -2)));
+    // Smooth bobbing and rotation
+    meshRef.current.position.y = Math.sin(time * 0.5) * 0.5 + 2;
+    meshRef.current.rotation.y = time * 0.2;
+    meshRef.current.rotation.z = Math.sin(time * 0.8) * 0.05;
+    meshRef.current.rotation.x = Math.cos(time * 0.8) * 0.05;
   });
 
   return (
     <group ref={meshRef}>
+      {/* Sleek Glass Body */}
       <mesh castShadow>
-        <boxGeometry args={[0.8, 0.2, 1]} />
-        <meshStandardMaterial color="#3B82F6" emissive="#3B82F6" emissiveIntensity={0.5} />
+        <boxGeometry args={[1, 0.2, 1.4]} />
+        <meshStandardMaterial 
+          color="#ffffff" 
+          transparent 
+          opacity={0.8} 
+          metalness={0.9} 
+          roughness={0.1}
+          emissive="#3B82F6"
+          emissiveIntensity={0.2}
+        />
       </mesh>
       
+      {/* Structural Carbon Arms */}
       <group>
-        <mesh><boxGeometry args={[1.8, 0.05, 0.15]} /><meshStandardMaterial color="#050816" /></mesh>
-        <mesh rotation={[0, Math.PI / 2, 0]}><boxGeometry args={[1.8, 0.05, 0.15]} /><meshStandardMaterial color="#050816" /></mesh>
+        <mesh position={[0, 0, 0]} rotation={[0, 0, 0]}>
+          <boxGeometry args={[2.2, 0.05, 0.1]} />
+          <meshStandardMaterial color="#111111" metalness={1} />
+        </mesh>
+        <mesh position={[0, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
+          <boxGeometry args={[2.2, 0.05, 0.1]} />
+          <meshStandardMaterial color="#111111" metalness={1} />
+        </mesh>
       </group>
 
-      {[[-0.9, 0.15, -0.45], [0.9, 0.15, -0.45], [-0.9, 0.15, 0.45], [0.9, 0.15, 0.45]].map((pos, i) => (
+      {/* High-Speed Rotors */}
+      {[[-1.1, 0.1, -1.1], [1.1, 0.1, -1.1], [-1.1, 0.1, 1.1], [1.1, 0.1, 1.1]].map((pos, i) => (
         <group key={i} position={pos as any}>
-          <mesh><cylinderGeometry args={[0.4, 0.4, 0.02, 16]} /><meshStandardMaterial color="#22D3EE" transparent opacity={0.2} /></mesh>
+          {/* Rotor Housing */}
+          <mesh>
+            <cylinderGeometry args={[0.15, 0.15, 0.1, 16]} />
+            <meshStandardMaterial color="#222" />
+          </mesh>
+          {/* Spinning Blur Effect */}
+          <mesh position={[0, 0.05, 0]}>
+            <cylinderGeometry args={[0.6, 0.6, 0.01, 32]} />
+            <meshStandardMaterial 
+              color="#3B82F6" 
+              transparent 
+              opacity={0.1} 
+              emissive="#3B82F6"
+              emissiveIntensity={2}
+            />
+          </mesh>
           <RotorBlade />
         </group>
       ))}
 
-      <mesh position={[0, -0.15, 0.4]} rotation={[0.4, 0, 0]}>
-        <sphereGeometry args={[0.12, 16, 16]} />
-        <meshStandardMaterial color="#0a0a0a" emissive="#3B82F6" emissiveIntensity={2} />
+      {/* Front Optical Sensor (Blue Eye) */}
+      <mesh position={[0, -0.05, 0.7]} rotation={[0.4, 0, 0]}>
+        <sphereGeometry args={[0.15, 32, 32]} />
+        <meshStandardMaterial color="#000" emissive="#3B82F6" emissiveIntensity={5} />
       </mesh>
-      <pointLight position={[0, 0.3, 0]} intensity={10} color="#3B82F6" />
+
+      {/* Underglow */}
+      <pointLight position={[0, -0.5, 0]} intensity={5} color="#3B82F6" />
     </group>
   );
 };
 
 const RotorBlade: React.FC = () => {
   const ref = useRef<THREE.Mesh>(null);
-  useFrame(() => { if (ref.current) ref.current.rotation.y += 20; });
+  useFrame((state) => {
+    if (ref.current) ref.current.rotation.y += 0.8;
+  });
   return (
-    <mesh ref={ref}>
-      <boxGeometry args={[0.7, 0.01, 0.05]} />
+    <mesh ref={ref} position={[0, 0.06, 0]}>
+      <boxGeometry args={[1.1, 0.01, 0.05]} />
       <meshStandardMaterial color="#333" />
     </mesh>
   );

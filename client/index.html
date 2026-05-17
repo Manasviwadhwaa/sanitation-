@@ -1,13 +1,38 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SAFAI | Smart Automated Facilities Monitor</title>
-    <meta name="description" content="Cinematic 3D flight experience for smart facility monitoring and attendance." />
+    <meta name="theme-color" content="#fcf8fa" />
+    <meta name="description" content="Sanitrax | High-Fidelity Smart City Sanitation & AI Telemetry OS" />
+    <title>Sanitrax | City Intelligence</title>
+    
+    <!-- Material Symbols -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" />
+    
+    <style>
+      /* Pre-loader for Premium Feel */
+      #root:empty::after {
+        content: 'SANITRAX';
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-family: system-ui, -apple-system, sans-serif;
+        font-weight: 900;
+        letter-spacing: 0.5em;
+        font-size: 12px;
+        color: #000;
+        animation: pulse 2s infinite ease-in-out;
+      }
+      @keyframes pulse {
+        0%, 100% { opacity: 0.2; }
+        50% { opacity: 0.6; }
+      }
+    </style>
   </head>
-  <body class="bg-[#030712] overflow-x-hidden">
+  <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

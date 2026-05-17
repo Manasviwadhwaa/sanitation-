@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { ShieldCheck, ArrowUpRight, Zap, Database } from 'lucide-react';
 
 interface FooterProps {
   onOpenDeepDive?: () => void;
@@ -10,51 +11,64 @@ const Footer: React.FC<FooterProps> = ({ onOpenDeepDive }) => {
   const navigate = useNavigate();
 
   return (
-    <footer className="relative z-10 px-6 py-32 border-t border-white/5 bg-atmosBgAlt/30 backdrop-blur-xl">
-      <div className="max-w-5xl mx-auto text-center mb-32">
+    <footer className="relative z-10 px-10 py-40 border-t border-white/5 bg-premium-bg overflow-hidden">
+      {/* Background Glow */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[60%] h-[40%] bg-premium-accent/10 rounded-full blur-[150px] pointer-events-none" />
+
+      <div className="max-w-6xl mx-auto text-center mb-40 relative z-10">
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 1 }}
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1, ease: "circOut" }}
+          viewport={{ once: true }}
         >
-          <div className="inline-block px-4 py-1.5 rounded-full bg-atmosAccent/10 text-atmosAccent text-[10px] font-bold uppercase tracking-widest mb-8 border border-atmosAccent/20">
-            System Integration
+          <div className="inline-flex items-center gap-3 px-5 py-2 rounded-xl bg-white/5 text-premium-muted text-[10px] font-black uppercase tracking-[0.4em] mb-12 border border-white/10">
+            <Zap size={14} className="text-premium-accent" />
+            Infrastructure Synthesis
           </div>
-          <h3 className="text-4xl md:text-8xl font-bold text-atmosText mb-8 tracking-tighter leading-[0.85]">
-            Secure your <br />
-            <span className="text-atmosAccent">Infrastructure.</span>
+          <h3 className="text-6xl md:text-9xl font-black text-white mb-12 tracking-tighter leading-[0.85]">
+            Command your <br />
+            <span className="text-premium-accent">Metropolis.</span>
           </h3>
-          <p className="text-atmosTextMuted mb-12 text-xl max-w-2xl mx-auto leading-relaxed font-inter font-light">
-            Join the network of smart cities using SAFAI to transform public hygiene 
-            into a data-driven utility. Access deep operational insights and real-time telemetry.
+          <p className="text-premium-muted mb-16 text-xl max-w-3xl mx-auto leading-relaxed font-medium opacity-80">
+            Join the digital sanitation revolution. SAAF transforms municipal hygiene 
+            into a mission-critical utility with deep AI-driven operational intelligence.
           </p>
-          <div className="flex flex-col sm:flex-row gap-6 justify-center">
+          <div className="flex flex-col sm:flex-row gap-8 justify-center items-center">
             <button 
               onClick={() => navigate('/login')}
-              className="px-12 py-5 bg-atmosAccent hover:bg-atmosAccentSoft text-black font-bold text-[11px] uppercase tracking-widest rounded-full transition-all shadow-[0_20px_50px_rgba(34,197,94,0.3)] hover:shadow-[0_20px_50px_rgba(34,197,94,0.5)] transform hover:-translate-y-1 font-inter"
+              className="group px-14 py-6 bg-white text-black font-black text-[11px] uppercase tracking-[0.3em] rounded-2xl transition-all shadow-2xl hover:scale-105 active:scale-95 flex items-center gap-4"
             >
-              Request Admin Access
+              Request Access
+              <ArrowUpRight size={18} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
             </button>
             <button 
               onClick={onOpenDeepDive}
-              className="px-12 py-5 bg-white/5 hover:bg-white/10 text-atmosText font-bold text-[11px] uppercase tracking-widest rounded-full border border-white/10 transition-all backdrop-blur-sm font-inter"
+              className="px-14 py-6 bg-white/5 hover:bg-white/10 text-white font-black text-[11px] uppercase tracking-[0.3em] rounded-2xl border border-white/10 transition-all backdrop-blur-3xl hover:border-premium-accent/30"
             >
-              View Documentation
+              System Specs
             </button>
           </div>
         </motion.div>
       </div>
       
-      <div className="max-w-[1440px] mx-auto pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-8 text-atmosTextSubtle text-[10px] font-medium uppercase tracking-[0.1em]">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-atmosAccent flex items-center justify-center font-bold text-black text-xs">S</div>
-          <div className="font-inter">© 2026 SAFAI / SAAF. Digital Command Center.</div>
+      <div className="max-w-7xl mx-auto pt-16 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-12 text-premium-muted text-[10px] font-black uppercase tracking-[0.2em] relative z-10">
+        <div className="flex items-center gap-6">
+          <div className="w-12 h-12 rounded-2xl bg-premium-accent flex items-center justify-center font-black text-white text-xl shadow-2xl shadow-premium-accent/20">S</div>
+          <div>
+            <div className="text-white mb-1">© 2026 SAAF GRID</div>
+            <div className="opacity-40">Digital Municipal Command Center</div>
+          </div>
         </div>
-        <div className="flex items-center gap-10 tracking-[0.2em] font-bold text-[9px] font-inter">
-          <a href="#" className="hover:text-atmosAccent transition-colors">Privacy</a>
-          <a href="#" className="hover:text-atmosAccent transition-colors">Terms</a>
-          <a href="#" className="hover:text-atmosAccent transition-colors">Uptime</a>
-          <a href="#" className="hover:text-atmosAccent transition-colors">API</a>
+        <div className="flex items-center gap-12">
+          <a href="#" className="hover:text-white transition-colors flex items-center gap-2">
+            <ShieldCheck size={14} /> Security
+          </a>
+          <a href="#" className="hover:text-white transition-colors">Privacy Protocol</a>
+          <a href="#" className="hover:text-white transition-colors flex items-center gap-2">
+            <Database size={14} /> Core API
+          </a>
+          <a href="#" className="hover:text-premium-accent transition-colors">v2.1 Master</a>
         </div>
       </div>
     </footer>

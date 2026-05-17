@@ -5,9 +5,9 @@ const getSocketURL = () => {
   
   const hostname = window.location.hostname;
   
-  // If we are on localhost, return localhost:4000
+  // If we are on localhost, return localhost:4001
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return `http://localhost:4000`;
+    return `http://localhost:4001`;
   }
   
   // In production, try to connect to the same origin
